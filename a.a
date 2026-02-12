@@ -1,0 +1,30 @@
+let a = define(){
+    print("pong");
+};
+// aは関数
+
+let b = define B(){
+    print("ping");
+};
+// bは？
+if (true){
+}
+
+if (1==1){
+}
+
+%1 = alloca i1024
+%2 = alloca i1024
+%3 = add %1 , %2
+
+struct list{
+    value member;
+    list*next;
+}
+
+struct list{
+    int size;
+    void*list_pointer;
+}
+
+List

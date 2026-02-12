@@ -1,0 +1,32 @@
+TokenType.LET:[let
+  TokenType.ID:[i
+    TokenType.DFUNION:[0]
+    NODES:[
+      TokenType.tNUM:[Num]
+      TokenType.tLIST:[List
+        TokenType.tNUM:[Num]
+        None
+      ]
+      TokenType.tLIST:[List
+        TokenType.ID:[Char]
+        None
+      ]
+    ]
+    None
+  ]
+  TokenType.NUMBER:[0]
+]
+TokenType.FOR:[for
+  TokenType.ID:[i]
+  TokenType.DOUBLEDOT:[..
+    TokenType.NUMBER:[1]
+    TokenType.NUMBER:[100]
+  ]
+]
+TokenType.LBRACE:[{]
+NODES:[
+  TokenType.ADD_ASSIGN:[+=
+    TokenType.ID:[i]
+    TokenType.NUMBER:[1]
+  ]
+]
