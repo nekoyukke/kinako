@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 from tokens import Token
 from enum import Enum
@@ -12,6 +12,7 @@ class Symbol:
     node: DeclarationNode | ClassDefNode | FunctionDefNode | ImportNode | ForNode # 関数定義ノードや変数定義ノード
     type: Optional[TypeNode] = None # 型
     is_extern: bool = False # 外部
+    member: list[Symbol] = field(default_factory=list["Symbol"])
 
 
 
@@ -83,7 +84,9 @@ class ClassVariableParams(ASTNode):
 # --- Expressions (値を返す) ---
 @dataclass
 class Expr(ASTNode):
-    pass
+    line: int
+    column: int
+    len: int
 
 @dataclass
 class Literal(Expr):
@@ -91,6 +94,7 @@ class Literal(Expr):
 
 @dataclass
 class NumberNode(Literal):
+    
     # 数字
     value: int
     token: Token
@@ -195,7 +199,9 @@ class IndexAccessNode(Expr):
 # --- Statements (処理を行う) ---
 @dataclass
 class Stmt(ASTNode):
-    pass
+    line: int
+    column: int
+    len: int
 
 class VariableType(Enum):
     CONST = 0
@@ -205,9 +211,7 @@ class VariableType(Enum):
 @dataclass
 class DeclarationNode(Stmt):
     # 定義
-    line: int
-    column: int
-    len: int
+    
     left: VariableNode
     right: Optional[Expr]
     type: TypeNode
@@ -216,11 +220,13 @@ class DeclarationNode(Stmt):
 
 @dataclass
 class ExprStmtNode(Stmt):
+    
     # 文字だけどstmt
     expr: Expr
 
 @dataclass
 class BlockNode(Stmt):
+    
     # ブロック
     blocks: List[Stmt]
     lifetime: Optional[LifetimeNode]
@@ -228,6 +234,7 @@ class BlockNode(Stmt):
 
 @dataclass
 class IfStmtNode(Stmt):
+    
     # if文
     condition: Expr
     then_block: Stmt
@@ -235,6 +242,7 @@ class IfStmtNode(Stmt):
 
 @dataclass
 class WhileStmtNode(Stmt):
+    
     # 繰り返し
     condition: Expr
     body: Stmt
@@ -243,9 +251,7 @@ class WhileStmtNode(Stmt):
 @dataclass
 class FunctionDefNode(Stmt):
     # 関数定義
-    line: int
-    column: int
-    len: int
+    
     name: Token
     body: Stmt
     type: FunctionTypeNode
@@ -254,6 +260,7 @@ class FunctionDefNode(Stmt):
 
 @dataclass
 class ReturnStmtNode(Stmt):
+    
     # 返る
     token: Token
     value: Optional[Expr] = None
@@ -261,9 +268,7 @@ class ReturnStmtNode(Stmt):
 @dataclass
 class ClassDefNode(Stmt):
     # 定義
-    line: int
-    column: int
-    len: int
+    
     name: Token
     variable: list[ClassVariableParams]
     method: list[ClassFunctionParams]
@@ -276,9 +281,7 @@ class Program(Stmt):
 
 @dataclass
 class ForNode(Stmt):
-    line: int
-    column: int
-    len: int
+    
     iterator: VariableNode
     iterable: Expr
     body: Stmt
@@ -286,9 +289,7 @@ class ForNode(Stmt):
 
 @dataclass
 class ImportNode(Stmt):
-    line: int
-    column: int
-    len: int
+    
     From: Expr
     Import: Token
     symbol: Optional[Symbol] = None

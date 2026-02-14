@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict
 from myast import *
 from utils import AnalysisError, logging
+from tokens import *
+from type import *
 
 @dataclass
 class Scope:
@@ -24,6 +26,13 @@ class ScopeChecker:
         self.source = source
         self.std: dict[str, dict[str, dict[str, Symbol]]] = {}
         self.blocknum:int = 0
+        self.classdata: dict[str, Symbol]
+        """
+        class A{
+            let int a; // a
+            fn func{} // func
+        }
+        """
     
     def _util_CallError(self, message: str, line: int, column: int, name: str, len: int) -> None:
         raise AnalysisError(message, line, column, self.source, name, len)
@@ -261,6 +270,7 @@ class ScopeChecker:
         return
 
     def _visit_Block(self, node:BlockNode) -> None:
+        # ブロック作ってstmt回してる
         self._util_make_Scope(Scope(aliases={}, name=f"{self.blocknum}_Block"))
         self.blocknum += 1
         for stmt in node.blocks:
@@ -334,15 +344,35 @@ class ScopeChecker:
                 self._visit_expr(node.left)
                 return
             case AssginNode():
+                # 変更可能かどうか
+                if not isinstance(node.left, (VariableNode, MemberAccessNode, IndexAccessNode, UnaryOpNode)):
+                    self._util_CallError(
+                        "Left side of assignment is not assignable",
+                        node.op.line,
+                        node.op.column,
+                        "_visit_Assign",
+                        len(node.op.String)
+                    )
+                if isinstance(node.left, UnaryOpNode):
+                    if not node.left.op.type in (TokenType.MULT, TokenType.ADD):
+                        self._util_CallError(
+                            "Left side of assignment is not assignable",
+                            node.op.line,
+                            node.op.column,
+                            "_visit_Assign",
+                            len(node.op.String)
+                        )
                 self._visit_expr(node.right)
                 self._visit_expr(node.left)
                 return
             case CallExprNode():
+                # 呼び出し
                 self._visit_expr(node.func_name)
                 for i in node.args:
                     self._visit_expr(i)
                 return
             case MemberAccessNode():
+                # メンバアクセス。ちょっとめんどい処理
                 self._visit_expr(node.left)
                 return
             case IndexAccessNode():
@@ -373,13 +403,205 @@ class ScopeChecker:
             case _:
                 return
         return
-    
+
+@dataclass
+class BinaryOp():
+    r: TypeObject
+    l: TypeObject
+    res: TypeObject
 
 # 型のチェック
 # 演算・代入・暗黙変換
 class TypeChecker:
-    def __init__(self, node:Program) -> None:
-        pass
+    def __init__(self, node:Program, source:str) -> None:
+        self.node = node
+        self.source = source
+    
+    def _util_CallError(self, message: str, line: int, column: int, name: str, len: int) -> None:
+        raise AnalysisError(message, line, column, self.source, name, len)
+
+    def visit_TypeCheck(self):
+        return self.__visit_typecheck()
+    
+    def __visit_typecheck(self):
+        for i in self.node.blocks:
+            self.__visit_Stmtnode(i)
+    
+    def _util_Typenode2type(self, node:TypeNode) -> TypeObject:
+        match (node):
+            case ListTypeNode():
+                return TypeList(self._util_Typenode2type(node.element_type))
+            case PointerTypeNode():
+                return TypePtr(self._util_Typenode2type(node.element_type))
+            case MutTypeNode():
+                return TypeMut(self._util_Typenode2type(node.element_type))
+            case BorrowTypeNode():
+                return TypeBorrow(self._util_Typenode2type(node.element_type))
+            case FunctionTypeNode():
+                if node.return_type is None:
+                    return TypeFunction(
+                        [self._util_Typenode2type(i) for i in node.param_types],
+                        TypeNone(),
+                    )
+                return TypeFunction(
+                    [self._util_Typenode2type(i) for i in node.param_types],
+                    self._util_Typenode2type(node.return_type)
+                )
+            case FunctionTypeNode():
+                if node.return_type is None:
+                    return TypeFunction(
+                        [self._util_Typenode2type(i) for i in node.param_types],
+                        TypeNone()
+                    )
+                return TypeFunction(
+                    [self._util_Typenode2type(i) for i in node.param_types],
+                    self._util_Typenode2type(node.return_type)
+                )
+            case TypeNode():
+                match (node.token.type):
+                    case TokenType.tNUM:
+                        return TypeInt(None, True, True)
+                    case TokenType.tDEC:
+                        return TypeFloat(None, True)
+                    case TokenType.tSTR:
+                        return TypeString()
+                    case TokenType.tANY:
+                        return TypeAny()
+                    case TokenType.tARRAY:
+                        # 未実装なり～
+                        raise
+                    case TokenType.tDYNAMIC:
+                        # 型推論型
+                        return TypeDynamic()
+                    case TokenType.tMAP:
+                        # 未実装なり～
+                        raise
+                    case TokenType.tBOOL:
+                        return TypeBool()
+                    case TokenType.tCLASS:
+                        # みじっそう
+                        raise
+                    case TokenType.tANYNUMBER:
+                        # 廃止
+                        raise
+                    case TokenType.tANYFLOAT:
+                        # 廃止
+                        raise
+                    case TokenType.tREF:
+                        # 廃止
+                        raise
+                    case TokenType.tINT8:
+                        return TypeInt(8, False, True)
+                    case TokenType.tUINT8:
+                        return TypeInt(8, False, False)
+                    case TokenType.tINT16:
+                        return TypeInt(16, False, True)
+                    case TokenType.tUINT16:
+                        return TypeInt(16, False, False)
+                    case TokenType.tINT32:
+                        return TypeInt(32, False, True)
+                    case TokenType.tUINT32:
+                        return TypeInt(32, False, False)
+                    case TokenType.tINT64:
+                        return TypeInt(64, False, True)
+                    case TokenType.tUINT64:
+                        return TypeInt(64, False, False)
+                    case TokenType.tINT128:
+                        return TypeInt(128, False, True)
+                    case TokenType.tUINT128:
+                        return TypeInt(128, False, False)
+                    case TokenType.tFLOAT32:
+                        return TypeFloat(32, False)
+                    case TokenType.tFLOAT64:
+                        return TypeFloat(64, False)
+                    case TokenType.tFLOAT:
+                        return TypeFloat(32, False)
+                    case TokenType.tDOUBLE:
+                        return TypeFloat(64, False)
+                    case TokenType.tINT:
+                        return TypeInt(32, False, True)
+                    case TokenType.tLONG:
+                        return TypeInt(64, False, True)
+                    case TokenType.tSHORT:
+                        return TypeInt(16, False, True)
+                    case TokenType.tCHAR:
+                        return TypeInt(8, False, True)
+                    case _:
+                        raise
+            case _:
+                raise
+        
+    def __visit_Stmtnode(self, node:Stmt):
+        match (node):
+            # 定義系
+            case DeclarationNode():
+                return self._visit_Declaration(node)
+            case FunctionDefNode():
+                return
+            case ImportNode():
+                return
+            case ClassDefNode():
+                return
+            # Exprに飛ぶ系
+            case ExprStmtNode():
+                return
+            case ReturnStmtNode():
+                return
+            # この中のblockをwhileで再帰して回す系
+            case WhileStmtNode():
+                return
+            case BlockNode():
+                return
+            case IfStmtNode():
+                return
+            case ForNode():
+                return
+            case _:
+                # unknown node
+                # 例外だしても、、いいよね？
+                raise
+    
+    def _visit_Declaration(self, node:DeclarationNode):
+        # rightを検知してそのあと右との型整合性をはかる
+        # Dynamicだったら右をそのまま使う
+        self._visit_expr_(node.right)
+    
+    def _visit_expr_can_change(self, node:Expr) -> TypeObject:
+        # 可変か
+        # じっしつらっぱ
+        if not isinstance(node, (VariableNode, MemberAccessNode, IndexAccessNode, UnaryOpNode)):
+            self._util_CallError(
+                "This expression must be a modifiable expression",
+                node.line,
+                node.column,
+                "_visit_expr_can_change",
+                node.len
+            )
+            raise
+        if isinstance(node, UnaryOpNode):
+            if not node.op.type in (TokenType.MULT, TokenType.ADD):
+                self._util_CallError(
+                    "This expression must be a modifiable expression",
+                    node.line,
+                    node.column,
+                    "_visit_expr_can_change",
+                    node.len
+                )
+                raise
+        return self._visit_expr_(node)
+    
+    def _visit_expr_(self, node:Optional[Expr]) -> TypeObject:
+        if node is None:
+            raise
+        match(node):
+            case BinaryOpNode():
+                return self._visit_expr_binary(node)
+            case _:
+                raise
+    def _visit_expr_binary(self, node:BinaryOpNode) -> TypeObject:
+        TypeScheme = {}
+
+
 
 # 汎用変数のブロック外へのアクセス制限
 class EscapeAnalyzer:

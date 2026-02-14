@@ -1,5 +1,6 @@
 from myast import *
 from tokens import *
+from stdclass import *
 
 STD:dict[str, dict[str, dict[str, Symbol]]] = {
     "std": {
@@ -9,7 +10,7 @@ STD:dict[str, dict[str, dict[str, Symbol]]] = {
                 "std.io.print",
                 FunctionDefNode(
                     0,0,0,Token.zero(),
-                    Stmt(),FunctionTypeNode(
+                    Stmt(0,0,0),FunctionTypeNode(
                         "Function",
                         Token.zero(),
                         False,
@@ -28,7 +29,7 @@ STD:dict[str, dict[str, dict[str, Symbol]]] = {
                             Token(TokenType.tSTR,0),
                             False
                         ),
-                        VariableNode("s", Token.zero())
+                        VariableNode(0,0,0,"s", Token.zero())
                     )]
                 )
             ),

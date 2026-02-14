@@ -121,6 +121,7 @@ class TokenType(Enum):
     EXP = "**"
     ADD = "&"
     DIV = "/"
+    MOD = "%"
     LOGICAND = "&&"
     LOGICXOR = "^^"
     LOGICOR = "||"

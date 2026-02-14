@@ -34,12 +34,12 @@ def ast(Tokens:list[Token], source: str):
         while cus.type in token_types:
             ad()
             # 左結合の木を作る
-            nod = BinaryOpNode(nod, cus, next_func())
+            nod = BinaryOpNode(cus.line, cus.column, cu("binary_op").column - cus.column, nod, cus, next_func())
             cus = cu("binary_op")
         return nod
     
     def program(type:TokenType):
-        exp = Program([])
+        exp = Program(0,0,0,[])
         while cu("program").type != type:
             exp.blocks += [stmt()]
         return exp
@@ -63,9 +63,11 @@ def ast(Tokens:list[Token], source: str):
             case TokenType.IMPORT:
                 return Import()
             case _:
+                start = cu()
                 exp = expr()
                 ex(TokenType.SEMI, "Stmt in Expr", "';' is required")
-                return ExprStmtNode(exp)
+                end = cu()
+                return ExprStmtNode(start.line, start.column, end.column - start.column, exp)
     
     def Import() -> Stmt:
         tok = cu()
@@ -75,7 +77,7 @@ def ast(Tokens:list[Token], source: str):
         return ImportNode(tok.line, tok.column, semi.column - tok.column + 1, expr_import, tok)
 
     def Block() -> Stmt:
-        ex(TokenType.LBRACE, "block", "Expected '{'")
+        lbrace =  ex(TokenType.LBRACE, "block", "Expected '{'")
         
         lifetime: Optional[LifetimeNode] = None
         captures: list[VariableNode] = []
@@ -85,7 +87,7 @@ def ast(Tokens:list[Token], source: str):
             ad() # ` を消費
             # ` の直後は識別子（名前）を期待
             lt_tok = ex(TokenType.ID, "lifetime", "Expected name after '`'")
-            lifetime = LifetimeNode("`" + lt_tok.String, lt_tok)
+            lifetime = LifetimeNode(lt_tok.line, lt_tok.column, 1, "`" + lt_tok.String, lt_tok)
 
         # キャプチャリストの解析: [id1, id2, ...]
         if cu().type == TokenType.LBRACKET:
@@ -93,7 +95,7 @@ def ast(Tokens:list[Token], source: str):
             if cu().type != TokenType.RBRACKET: # 空でない場合
                 while True:
                     id_tok = ex(TokenType.ID, "capture", "Expected identifier in capture list")
-                    captures.append(VariableNode(id_tok.String, id_tok))
+                    captures.append(VariableNode(id_tok.line, id_tok.column, len(id_tok.String), id_tok.String, id_tok))
                     
                     if cu().type == TokenType.COMMA:
                         ad()
@@ -108,12 +110,12 @@ def ast(Tokens:list[Token], source: str):
             
         ex(TokenType.RBRACE, "block", "Expected '}'")
         
-        return BlockNode(stmts, lifetime, captures)
+        return BlockNode(lbrace.line,lbrace.column,1,stmts, lifetime, captures)
             
     
     def If() -> Stmt:
         # 'if' を消費
-        ex(TokenType.IF, "if")
+        iftok = ex(TokenType.IF, "if")
         
         # 条件と実行文
         condition = expr()
@@ -128,11 +130,11 @@ def ast(Tokens:list[Token], source: str):
             ad()
             else_stmt = stmt()
             
-        return IfStmtNode(condition, then_stmt, else_stmt)
+        return IfStmtNode(iftok.line, iftok.column, 2,condition, then_stmt, else_stmt)
 
     def Elif_helper() -> Stmt:
         # elif トークンを消費して、中身は if と同じように処理
-        ex(TokenType.ELIF, "elif")
+        iftok = ex(TokenType.ELIF, "elif")
         condition = expr()
         then_stmt = stmt()
         
@@ -143,7 +145,7 @@ def ast(Tokens:list[Token], source: str):
             ad()
             else_stmt = stmt()
             
-        return IfStmtNode(condition, then_stmt, else_stmt)
+        return IfStmtNode(iftok.line, iftok.column, 2,condition, then_stmt, else_stmt)
 
     
     def For() -> Stmt:
@@ -152,7 +154,7 @@ def ast(Tokens:list[Token], source: str):
         
         # ループ変数の取得 i
         var_tok = ex(TokenType.ID, "for", "Expected identifier after 'for'")
-        iterator = VariableNode(var_tok.String, var_tok)
+        iterator = VariableNode(var_tok.line, var_tok.column, len(var_tok.String), var_tok.String, var_tok)
         
         # INキーワードのチェック
         ex(TokenType.IN, "for", "Expected 'in' after for-variable")
@@ -166,20 +168,21 @@ def ast(Tokens:list[Token], source: str):
     
     def While() -> Stmt:
         # While <Expr> <Stmt> else <Stmt>
-        ex(TokenType.WHILE)
+        whiletok = ex(TokenType.WHILE)
         condition = expr()
         body = stmt()
-        return WhileStmtNode(condition, body)
+        return WhileStmtNode(whiletok.line, whiletok.column, len(whiletok.String),condition, body)
     
     def Return() -> Stmt:
         # Return <Expr>
         ret = cu()
         ad()
         if cu().type == TokenType.SEMI:
-            retstmt = ReturnStmtNode(ret)
+            retstmt = ReturnStmtNode(ret.line, ret.column, 0, ret)
         else:
-            retstmt = ReturnStmtNode(ret, expr())
+            retstmt = ReturnStmtNode(ret.line, ret.column, 0, ret, expr())
         ex(TokenType.SEMI)
+        retstmt.len = cu().column - ret.column
         return retstmt
         
     
@@ -195,7 +198,7 @@ def ast(Tokens:list[Token], source: str):
             while True:
                 type_tok = typenode()
                 id_tok = ex(TokenType.ID, "capture", "Expected identifier in capture list")
-                args.append(Params(type_tok, VariableNode(id_tok.String, id_tok)))
+                args.append(Params(type_tok, VariableNode(id_tok.line, id_tok.column, len(id_tok.String), id_tok.String, id_tok)))
 
                 if cu().type == TokenType.COMMA:
                     ad()
@@ -232,7 +235,7 @@ def ast(Tokens:list[Token], source: str):
         ad()
         type = typenode()
         lefttok = ex(TokenType.ID)
-        left = VariableNode(lefttok.String, lefttok)
+        left = VariableNode(lefttok.line, lefttok.column, len(lefttok.String),lefttok.String, lefttok)
         right:Optional[Expr] = None
         if cu("Declaration").type == TokenType.ASSIGN:
             ex(TokenType.ASSIGN, "Declaration", "Dec")
@@ -285,26 +288,24 @@ def ast(Tokens:list[Token], source: str):
     
     def expr() -> Expr:
         """
-        'To Do'? no no
-        'Do To'.
-        順位,関数名（レベル）,演算子,特徴・備考
-        1,Primary / Postfix,"f(), x.y, x++, x--",++/-- は後置なら最強
-        2,Unary / Prefix,"!, ~, -x, ++x, !!, ?!, %%!",Reject系はここ。右から左へ結合
-        3,Exponentiation,**,べき乗（右結合）
-        4,Multiplicative,"*, /, //, %",算術計算（乗除）
-        5,Additive,"+, -, &",&が文字列結合ならここでOK
-        6,Bitwise Shift,"<<, >>",ビットシフト
-        7,Relational,"<, <=, >, >=",大小比較
-        8,Equality,"==, !=, ===, !==, <=>",宇宙船演算子はここ
-        9,Bitwise AND,& (単一),ビットAND
-        10,Bitwise XOR,^,ビットXOR
-        11,Bitwise OR,|,ビットOR
-        12,Logical XOR,^^,排他的論理和
+        順位,関数名（レベル）,演算子
+        1,Primary / Postfix,"f()
+        2,Unary / Prefix,"!, ~, -x, ++x, !!, ?!, %%!"
+        3,Exponentiation,**
+        4,Multiplicative,"*, /, //, %"
+        5,Additive,"+, -, &",&
+        6,Bitwise Shift,"<<, >>"
+        7,Relational,"<, <=, >, >="
+        8,Equality,"==, !=, ===, !==, <=>"
+        9,Bitwise AND,& (単一)
+        10,Bitwise XOR,^
+        11,Bitwise OR,|
+        12,Logical XOR,^^
         13,Logical AND,&&,
         14,Logical OR,||,
-        15,Coalescing,"??, %%%, ?:",Elvis系。論理演算より弱く設定
-        16,Range,..,範囲作成
-        17,Assignment,"=, +=, ?= ...",最も弱い（右結合）
+        15,Coalescing,"??, %%%, ?:"
+        16,Range,..
+        17,Assignment,"=, +=, ?= ..."
         """
         return Assignment()
 
@@ -324,7 +325,7 @@ def ast(Tokens:list[Token], source: str):
                         ):
             ad()
             right = Assignment() 
-            return AssginNode(nod, right, cus, AssginType[cus.type.name])
+            return AssginNode(cus.line, cus.column, len(cus.String), nod, right, cus, AssginType[cus.type.name])
         return nod
     
     def Range() -> Expr:
@@ -334,7 +335,7 @@ def ast(Tokens:list[Token], source: str):
             right = Coalescing()
             if cu().type == TokenType.DOUBLEDOT:
                 raise utils.ParseError("Range cannot be chained", cu().line, cu().column, source, "Range", cu().String)
-            return BinaryOpNode(nod, tok, right)
+            return BinaryOpNode(tok.line, tok.column, len(tok.String), nod, tok, right)
         return nod
     
     def Coalescing() -> Expr:
@@ -386,7 +387,7 @@ def ast(Tokens:list[Token], source: str):
         return binary_op(Multiplicative, [TokenType.PLUS, TokenType.MINUS])
     
     def Multiplicative() -> Expr:
-        return binary_op(Exponentiation, [TokenType.MULT, TokenType.DIV])
+        return binary_op(Exponentiation, [TokenType.MULT, TokenType.DIV, TokenType.MOD])
     
     def Exponentiation() -> Expr:
         # まず左辺（Prefix）を読み込む
@@ -398,7 +399,7 @@ def ast(Tokens:list[Token], source: str):
             ad()
             # 右辺として「自分自身」を呼ぶことで、右側の ** を先に処理させる
             right = Exponentiation()
-            return BinaryOpNode(nod, tok, right)
+            return BinaryOpNode(tok.line, tok.column, len(tok.String), nod, tok, right)
             
         return nod
     
@@ -406,14 +407,14 @@ def ast(Tokens:list[Token], source: str):
         cus = cu()
         if cus.type in (TokenType.MULT, TokenType.ADD):
             ad()
-            return UnaryOpNode(cus, Prefix()) # 再帰して重ね掛け対応
+            return UnaryOpNode(cus.line,cus.column, len(cus.String), cus, Prefix()) # 再帰して重ね掛け対応
         return unary() # postfixへ
 
     def unary() -> Expr:
         cus = cu()
         if cus.type in (TokenType.LOGICNOT, TokenType.MINUS, TokenType.BITNOT):
             ad()
-            return UnaryOpNode(cus, unary()) # 再帰して重ね掛け対応
+            return UnaryOpNode(cus.line,cus.column, len(cus.String), cus, unary()) # 再帰して重ね掛け対応
         return postfix() # postfixへ
 
     def postfix() -> Expr:
@@ -424,12 +425,12 @@ def ast(Tokens:list[Token], source: str):
             if cus.type == TokenType.DOT:
                 ad()
                 member = ex(TokenType.ID)
-                node = MemberAccessNode(node, VariableNode(member.String, member))
+                node = MemberAccessNode(cus.line,cus.column, len(cus.String), node, VariableNode(member.line, member.column, len(member.String), member.String, member))
             elif cus.type == TokenType.LBRACKET:
                 ad()
                 index = expr()
                 ex(TokenType.RBRACKET)
-                node = IndexAccessNode(node, index)
+                node = IndexAccessNode(cus.line,cus.column, len(cus.String), node, index)
             elif cus.type == TokenType.LPAREN:
                 # primeの中にあった関数呼び出しロジックをここに移動！
                 node = call_logic(node) 
@@ -439,6 +440,7 @@ def ast(Tokens:list[Token], source: str):
     
     def call_logic(node:Expr):
         # 関数呼び出し
+        func = cu()
         ad()
         # a(1,2)
         #   ^
@@ -453,7 +455,8 @@ def ast(Tokens:list[Token], source: str):
                 break
         utils.logging.debug(cu())
         ex(TokenType.RPAREN,"prime","dont have )")
-        return CallExprNode(node, args)
+        end = cu()
+        return CallExprNode(func.line, func.column, end.column - func.column, node, args)
 
     def prime() -> Expr:
         cus = cu("prime one")
@@ -461,12 +464,12 @@ def ast(Tokens:list[Token], source: str):
             ad()
             if isinstance(cus.value, str|float):
                 raise
-            return NumberNode(cus.value, cus, 10)
+            return NumberNode(cus.line,cus.column, len(cus.String), cus.value, cus, 10)
         elif (cus.type == TokenType.ID):
             ad()
             if isinstance(cus.value, int|float):
                 raise
-            return VariableNode(cus.value, cus)
+            return VariableNode(cus.line,cus.column, len(cus.String), cus.value, cus)
         elif (cus.type == TokenType.LPAREN):
             ad()
             nod = expr()
@@ -474,19 +477,19 @@ def ast(Tokens:list[Token], source: str):
             return nod
         elif (cus.type == TokenType.TRUE):
             ad()
-            return BoolNode(cus, True)
+            return BoolNode(cus.line,cus.column, len(cus.String), cus, True)
         elif (cus.type == TokenType.FALSE):
             ad()
-            return BoolNode(cus, False)
+            return BoolNode(cus.line,cus.column, len(cus.String), cus, False)
         elif (cus.type == TokenType.NONE):
             ad()
-            return NoneNode(cus)
+            return NoneNode(cus.line,cus.column, len(cus.String), cus)
         elif (cus.type == TokenType.NULL):
             ad()
-            return NullNode(cus)
+            return NullNode(cus.line,cus.column, len(cus.String), cus)
         elif (cus.type == TokenType.STR):
             ad()
-            return StringNode(cus.String, cus)
+            return StringNode(cus.line,cus.column, len(cus.String), cus.String, cus)
         raise utils.ParseError("unkonw Tokens",cus.line,cus.column,source,"prime", cus.String)
     nod = program(TokenType.END)
     return nod

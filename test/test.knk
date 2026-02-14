@@ -1,7 +1,2 @@
-import std.io.print;
-fn int main() {
-    print("Hello, World");
-    val &borrow<int> a = 10;
-    a = 2;//t
-    return 0;
-}
+import std.io;
+io.printlfsjgeurenguireg();
