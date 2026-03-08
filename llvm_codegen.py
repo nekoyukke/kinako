@@ -9,8 +9,8 @@ import tokens
 class llvm_codegen:
     
     def __init__(self, node:list[ASTNode], filename:str = ""):
-        self.target = llvm.Target.from_default_triple()
-        self.target_machine = self.target.create_target_machine()
+        # self.target = llvm.Target.from_default_triple()
+        # self.target_machine = self.target.create_target_machine()
 
         self.module = ir.Module(filename)
         self.block = None
@@ -24,6 +24,20 @@ class llvm_codegen:
         self.node = node
         return
     
+    def make_func(self, function:ir.Function):
+        self.func = function
+        self.make_block(self.func.append_basic_block(name = "entry"))
+    
+    def make_block(self, block:Optional[ir.Block]):
+        self.block = block
+        self.builder = ir.IRBuilder(self.block)
+    
+    def _test_make_func_obj(self, name:str):
+        main_type = ir.FunctionType(ir.IntType(32), [])
+
+        main_func = ir.Function(self.module, main_type, name="name")
+        return main_func
+    
     def visit(self, node:ASTNode):
         node_type = type(node).__name__
         method_name = f"visit_{node_type}"
@@ -35,6 +49,9 @@ class llvm_codegen:
     
     def isGlobal(self):
         return self.func is None
+    
+    def getvariable(self, name:str):
+        pass
         
     def type_Conversion(self, node:ASTNode) -> ir.Type:
         if not isinstance(node, TypeNode):
@@ -75,22 +92,29 @@ class llvm_codegen:
             
             case _:
                 raise
-        
+    
+    def visit_ExprStmtNode(self, node:ASTNode):
+        if not isinstance(node, ExprStmtNode):
+            raise
+        self.Analysis(node.expr, ir.IntType(32))
+
     def visit_DeclarationNode(self, node:ASTNode):
         if not isinstance(node, DeclarationNode):
             raise
         if self.isGlobal():
-            ir.GlobalVariable(
+            res = ir.GlobalVariable(
                 self.module,
                 self.type_Conversion(node.type),
-                node.,
+                node.left.name
             )
+            self.util_set_variable(res)
         else:
-            ir.GlobalVariable(
+            res = self.builder.alloca(
                 self.module,
                 self.type_Conversion(node.type),
-                node.Declarationname,
+                node.left.name,
             )
+            self.util_set_variable(res)
         return
 
     def Analysis(self, node:Expr, type:ir.Type):
@@ -123,27 +147,97 @@ class llvm_codegen:
                 )
             case VariableNode():
                 # 変数
-                self.builder.load(
-                    self.getvariable(node.name),
+                res = self.builder.load(
+                    self.get_variable(node.name),
                     f"{self.pos}"
                 )
-                return f"{self.pos}"
-            case FunctionNode():
-                # 関数のポインタ
+                self.pos += 1
+                return res
             case CallExprNode():
                 # 引数を再帰的に渡して返り値
+                raise
             case StringNode():
                 # 文字列
                 # グローバル
+                raise
             case BinaryOpNode():
                 # 2項演算
+                l = self.Analysis(node.left, type)
+                r = self.Analysis(node.right, type)
+                print(l,r)
+                match(node.op.type):
+                    case tokens.TokenType.ADD:
+                        res = self.builder.add(
+                            l,
+                            r,
+                            f"{self.pos}"
+                        )
+                        self.pos += 1
+                        return res
+                    case tokens.TokenType.MINUS:
+                        res = self.builder.sub(
+                            l,
+                            r,
+                            f"{self.pos}"
+                        )
+                        self.pos += 1
+                        return res
+                    case tokens.TokenType.MULT:
+                        res = self.builder.mul(
+                            l,
+                            r,
+                            f"{self.pos}"
+                        )
+                        self.pos += 1
+                        return res
+                    case tokens.TokenType.DIV:
+                        res = self.builder.sdiv(
+                            l,
+                            r,
+                            f"{self.pos}"
+                        )
+                        self.pos += 1
+                        return res
+                    case _:
+                        raise
             case UnaryOpNode():
                 # 単項演算
+                raise
             case LogicalOpNode():
                 # logic演算
+                raise
             case AssginNode():
                 # 代入！
+                raise
             case MemberAccessNode():
                 # メンバアクセス
+                raise
             case IndexAccessNode():
                 # インデックス
+                raise
+            case _:
+                raise
+
+if __name__ == "__main__":
+    nodes:list[ASTNode] = [
+        ExprStmtNode(
+            0,0,0,
+            BinaryOpNode(
+                0,0,0,
+                NumberNode(
+                    0,0,0,10,Token(tokens.TokenType.ID, 10,),
+                    10
+                ),
+                Token(tokens.TokenType.ADD, "ADD")
+                ,
+                NumberNode(
+                    0,0,0,20,Token(tokens.TokenType.ID, 10,),
+                    10
+                )
+            )
+        )
+    ]
+    ll = llvm_codegen(nodes)
+    ll.make_func(ll._test_make_func_obj("main"))
+    print(ll.visit(nodes[0]))
+    print(ll.module)

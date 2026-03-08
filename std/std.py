@@ -1,6 +1,6 @@
 from myast import *
 from tokens import *
-from stdclass import *
+from std.stdclass import *
 
 STD:dict[str, dict[str, dict[str, Symbol]]] = {
     "std": {

@@ -404,6 +404,8 @@ class ScopeChecker:
                 return
         return
 
+
+
 @dataclass
 class BinaryOp():
     r: TypeObject
@@ -420,13 +422,14 @@ class TypeChecker:
     def _util_CallError(self, message: str, line: int, column: int, name: str, len: int) -> None:
         raise AnalysisError(message, line, column, self.source, name, len)
 
+#    def 
+
     def visit_TypeCheck(self):
         return self.__visit_typecheck()
     
     def __visit_typecheck(self):
         for i in self.node.blocks:
             self.__visit_Stmtnode(i)
-    
     def _util_Typenode2type(self, node:TypeNode) -> TypeObject:
         match (node):
             case ListTypeNode():
@@ -592,21 +595,32 @@ class TypeChecker:
     
     def _visit_expr_(self, node:Optional[Expr]) -> TypeObject:
         if node is None:
-            raise
+            return TypeNone()
         match(node):
             case BinaryOpNode():
                 return self._visit_expr_binary(node)
             case _:
                 raise
+
     def _visit_expr_binary(self, node:BinaryOpNode) -> TypeObject:
-        TypeScheme = {}
+        @dataclass
+        class BinaryOp():
+            T1: TypeObject
+            T2: TypeObject
+            R: TypeObject
 
+        left = self._visit_expr_(node.left)
+        right = self._visit_expr_(node.right)
+        
 
+        ProhibitedScheme:dict[str, list[type[TypeObject]]] = {
+            "+":[TypeArray, TypeTemplate],
+            "+":[Type, ],
+        }
+        TypeScheme:dict[str, list[BinaryOp]] = {
+            "+":[BinaryOp(TypeInt._(), TypeInt, TypeInt)] # int + int -> int
+        }
 
-# 汎用変数のブロック外へのアクセス制限
-class EscapeAnalyzer:
-    def __init__(self) -> None:
-        pass
 
 # 借用チェック
 class BorrowingChecker:

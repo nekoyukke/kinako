@@ -1,2 +1,6 @@
-import std.io;
-io.printlfsjgeurenguireg();
+fn int main(){
+    fn int foo(){
+        return 0;
+    }
+    return foo;
+}
