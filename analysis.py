@@ -406,7 +406,6 @@ class ScopeChecker:
 
 
 
-@dataclass
 class BinaryOp():
     r: TypeObject
     l: TypeObject
@@ -433,13 +432,9 @@ class TypeChecker:
     def _util_Typenode2type(self, node:TypeNode) -> TypeObject:
         match (node):
             case ListTypeNode():
-                return TypeList(self._util_Typenode2type(node.element_type))
+                return TypeList([self._util_Typenode2type(node.element_type)])
             case PointerTypeNode():
-                return TypePtr(self._util_Typenode2type(node.element_type))
-            case MutTypeNode():
-                return TypeMut(self._util_Typenode2type(node.element_type))
-            case BorrowTypeNode():
-                return TypeBorrow(self._util_Typenode2type(node.element_type))
+                return TypePtr([self._util_Typenode2type(node.element_type)])
             case FunctionTypeNode():
                 if node.return_type is None:
                     return TypeFunction(
@@ -603,23 +598,38 @@ class TypeChecker:
                 raise
 
     def _visit_expr_binary(self, node:BinaryOpNode) -> TypeObject:
-        @dataclass
-        class BinaryOp():
-            T1: TypeObject
-            T2: TypeObject
-            R: TypeObject
-
         left = self._visit_expr_(node.left)
         right = self._visit_expr_(node.right)
         
-
+        # アウトな奴
         ProhibitedScheme:dict[str, list[type[TypeObject]]] = {
-            "+":[TypeArray, TypeTemplate],
-            "+":[Type, ],
+            "+":[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
+            "-":[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
+            "*":[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
+            "/":[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
         }
-        TypeScheme:dict[str, list[BinaryOp]] = {
-            "+":[BinaryOp(TypeInt._(), TypeInt, TypeInt)] # int + int -> int
+
+        # 結果の型。
+        TypeScheme:dict[str, TypeObject] = {
+            "+":TypeTemplate(1),
+            "-":TypeTemplate(1),
+            "*":TypeTemplate(1),
+            "/":TypeTemplate(1),
         }
+        # 型のget
+        right = self._visit_expr_(node.right)
+        left = self._visit_expr_(node.left)
+        prohib = ProhibitedScheme[node.op.String]
+        # 明らかアウト
+        if type(right) in prohib or type(left) in prohib:
+            self._util_CallError(f"Op {node.op.String}", node.line, node.column, "BinaryOp", node.len)
+        # 型を出す
+        scheme =TypeScheme[node.op.String]
+        if not right == left:
+            self._util_CallError("type out", node.line, node.column, "binary", node.len)
+        if isinstance(scheme, TypeTemplate):
+            return right
+        return scheme
 
 
 # 借用チェック
