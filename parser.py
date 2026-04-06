@@ -46,7 +46,7 @@ def ast(Tokens:list[Token], source: str):
     
     def stmt() -> Stmt:
         match(cu().type):
-            case TokenType.VAL | TokenType.CONST | TokenType.LET:
+            case TokenType.VAL | TokenType.CONST | TokenType.LET | TokenType.MUT | TokenType.BORROW:
                 return Declaration()
             case TokenType.LBRACE:
                 return Block()
@@ -248,6 +248,10 @@ def ast(Tokens:list[Token], source: str):
                 return DeclarationNode(Typetok.line, Typetok.column, semi.column - semi.column + 1, left, right, type, VariableType.CONST)
             case TokenType.LET:
                 return DeclarationNode(Typetok.line, Typetok.column, semi.column - semi.column + 1, left, right, type, VariableType.LET)
+            case TokenType.MUT:
+                return DeclarationNode(Typetok.line, Typetok.column, semi.column - semi.column + 1, left, right, type, VariableType.MUT)
+            case TokenType.BORROW:
+                return DeclarationNode(Typetok.line, Typetok.column, semi.column - semi.column + 1, left, right, type, VariableType.BORROW)
             case _:
                 raise
 
@@ -267,13 +271,6 @@ def ast(Tokens:list[Token], source: str):
             ex(TokenType.LABRACKET, "type", "it dont have '<' Token in type call")
             nod = typenode()
             nod = PointerTypeNode(typetok.String, typetok, False, nod)
-            ex(TokenType.RABRACKET, "type", "it dont have '>' Token in type call")
-            return nod
-        if (typetok.type == TokenType.tMUT):
-            ad()
-            ex(TokenType.LABRACKET, "type", "it dont have '<' Token in type call")
-            nod = typenode()
-            nod = MutTypeNode(typetok.String, typetok, False, nod)
             ex(TokenType.RABRACKET, "type", "it dont have '>' Token in type call")
             return nod
         if (typetok.type == TokenType.tBORROW):
@@ -325,7 +322,7 @@ def ast(Tokens:list[Token], source: str):
                         ):
             ad()
             right = Assignment() 
-            return AssginNode(cus.line, cus.column, len(cus.String), nod, right, cus, AssginType[cus.type.name])
+            return AssignNode(cus.line, cus.column, len(cus.String), nod, right, cus, AssginType[cus.type.name])
         return nod
     
     def Range() -> Expr:
@@ -424,13 +421,21 @@ def ast(Tokens:list[Token], source: str):
             cus = cu("postfix")
             if cus.type == TokenType.DOT:
                 ad()
-                member = ex(TokenType.ID)
+                if cu().type == TokenType.BORROW:
+                    member = ex(TokenType.BORROW)
+                    member.type = TokenType.ID
+                else:
+                    member = ex(TokenType.ID, "postfix")
                 node = MemberAccessNode(cus.line,cus.column, len(cus.String), node, VariableNode(member.line, member.column, len(member.String), member.String, member))
             elif cus.type == TokenType.LBRACKET:
                 ad()
                 index = expr()
                 ex(TokenType.RBRACKET)
                 node = IndexAccessNode(cus.line,cus.column, len(cus.String), node, index)
+            elif cus.type == TokenType.AS:
+                ad()
+                typeas = typenode()
+                node = AsCastNode(cus.line, cus.column, len(cus.String), node, typeas)
             elif cus.type == TokenType.LPAREN:
                 # primeの中にあった関数呼び出しロジックをここに移動！
                 node = call_logic(node) 

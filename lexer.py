@@ -8,8 +8,6 @@ def tokenize(source: str) -> list[Token]:
     """
     token_spec = [
         # 特殊
-        ('TYPE_MUT', r'&mut'),
-        ('TYPE_COPY', r'&copy'),
         ('TYPE_BORROW', r'&borrow'),
         ('ARGS', r'\.\.args'),
         ('UNSAFE', r'@unsafe'),
@@ -77,15 +75,15 @@ def tokenize(source: str) -> list[Token]:
         ('ID', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ]
 
-    KEYWORDS = {"let", "val", "const", "fn", "null", "none", "true", "false", "if", "else", "elif"
-                , "null", "none", "while", "for", "return", "import", "in"}
+    KEYWORDS = {"let", "val", "const", "mut", "borrow", "fn", "null", "none", "true", "false", "if", "else", "elif"
+                , "null", "none", "while", "for", "return", "import", "in", "as"}
     TYPES = {"Dec", "Num", "Str", "Any", "List", "Array",
              "Tuple", "Class", "Map", "Funcion", "Dynamic", "Ptr",
              "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "int128", "uint128",
              "float32", "float64",
              "float", "double", "Bool",
              "int", "long", "short", "char",
-             "ref", "&mut", "&copy", "&borrow",}
+             "&borrow",}
 
 
     regex: str = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in token_spec)
@@ -112,14 +110,8 @@ def tokenize(source: str) -> list[Token]:
         if kind == 'SKIP' or kind == 'COMMENT':
             continue
         if kind == 'TYPE_MUT':
-            tokens.append(Token(TokenType.tMUT, value, line, col, value))
-        elif kind == 'TYPE_COPY':
-            tokens.append(Token(TokenType.tCOPY, value, line, col, value))
-        elif kind == 'TYPE_BORROW':
             tokens.append(Token(TokenType.tBORROW, value, line, col, value))
         elif kind == 'TYPE_REF':
-            tokens.append(Token(TokenType.tREF, value, line, col, value))
-        elif kind == "BACKQUOTE":
             tokens.append(Token(TokenType.BACKQUOTE, value, line, col, value))
         elif kind == "UNSAFE":
             tokens.append(Token(TokenType.UNSAFE, value, line, col, value))

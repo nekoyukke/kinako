@@ -12,10 +12,6 @@ class Scope:
     parent: Optional["Scope"] = None # 親
     name: str = "Global"
 
-# Checker統合
-class LangageChecker:
-    def __init__(self, node:Program) -> None:
-        pass
 
 # スコープのチェック
 class ScopeChecker:
@@ -343,7 +339,7 @@ class ScopeChecker:
                 self._visit_expr(node.right)
                 self._visit_expr(node.left)
                 return
-            case AssginNode():
+            case AssignNode():
                 # 変更可能かどうか
                 if not isinstance(node.left, (VariableNode, MemberAccessNode, IndexAccessNode, UnaryOpNode)):
                     self._util_CallError(
@@ -406,11 +402,6 @@ class ScopeChecker:
 
 
 
-class BinaryOp():
-    r: TypeObject
-    l: TypeObject
-    res: TypeObject
-
 # 型のチェック
 # 演算・代入・暗黙変換
 class TypeChecker:
@@ -418,7 +409,7 @@ class TypeChecker:
         self.node = node
         self.source = source
     
-    def _util_CallError(self, message: str, line: int, column: int, name: str, len: int) -> None:
+    def _util_CallError(self, message: str, line: int, column: int, name: str, len: int) -> AnalysisError:
         raise AnalysisError(message, line, column, self.source, name, len)
 
 #    def 
@@ -432,7 +423,7 @@ class TypeChecker:
     def _util_Typenode2type(self, node:TypeNode) -> TypeObject:
         match (node):
             case ListTypeNode():
-                return TypeList([self._util_Typenode2type(node.element_type)])
+                return TypeList(self._util_Typenode2type(node.element_type))
             case PointerTypeNode():
                 return TypePtr([self._util_Typenode2type(node.element_type)])
             case FunctionTypeNode():
@@ -483,9 +474,6 @@ class TypeChecker:
                         # 廃止
                         raise
                     case TokenType.tANYFLOAT:
-                        # 廃止
-                        raise
-                    case TokenType.tREF:
                         # 廃止
                         raise
                     case TokenType.tINT8:
@@ -542,10 +530,10 @@ class TypeChecker:
                 return
             # Exprに飛ぶ系
             case ExprStmtNode():
-                return
+                return self._visit_expr_(node.expr)
             case ReturnStmtNode():
                 return
-            # この中のblockをwhileで再帰して回す系
+            # この中のblockをwhileで再帰して回す系女子
             case WhileStmtNode():
                 return
             case BlockNode():
@@ -557,12 +545,29 @@ class TypeChecker:
             case _:
                 # unknown node
                 # 例外だしても、、いいよね？
+                # い゛い゛よ゛！！
                 raise
     
     def _visit_Declaration(self, node:DeclarationNode):
         # rightを検知してそのあと右との型整合性をはかる
         # Dynamicだったら右をそのまま使う
-        self._visit_expr_(node.right)
+        right = self._visit_expr_(node.right)
+        ntype = self._util_Typenode2type(node.type)
+        # リテラルと確定型の型合わせ
+        # 右がLiteral、左が確定型
+        if isinstance(right, LiteralType) and not isinstance(ntype, LiteralType):
+            if self._can_literal_bind(right, ntype):
+                right = ntype
+        # 型を出す
+        if not right == ntype:
+            self._util_CallError(f"型が一致しません！{node.type}と{right}", node.line, node.column, "binary", node.len)
+        # ここで結果を格納
+        if node.symbol is None:
+            raise
+        # 設定
+        node.symbol.Type_analysis = right
+        # 任務完了
+        return
     
     def _visit_expr_can_change(self, node:Expr) -> TypeObject:
         # 可変か
@@ -593,46 +598,147 @@ class TypeChecker:
             return TypeNone()
         match(node):
             case BinaryOpNode():
+                # 実装終わった
                 return self._visit_expr_binary(node)
+            case Literal():
+                # 実装終わった
+                return self._visit_expr_literal(node)
+            case UnaryOpNode():
+                # おへ
+                return self._visit_expr_Unary(node)
+            case LogicalOpNode():
+                # なへ
+                # TODO: もしかしたら常にBooleanをかえすかも
+                return self._visit_expr_Logical(node)
+            case AssignNode():
+                # ぽえ
+                # TODO:_visit_expr_can_cangeを実行して変更可能かを検知
+                # TODO: Literal系と合致するかを決めてくださいな
+                return self._visit_expr_assign(node)
+            case CallExprNode():
+                # ぽけ
+                return self._visit_expr_CallExpr(node)
+            case MemberAccessNode():
+                # かれ
+                # これはたぶん無理
+                return self._visit_expr_Member(node)
+            case IndexAccessNode():
+                # なへり
+                # インデックス元のGenelicうぃかえる
+                return self._visit_expr_Index(node)
+            case AsCastNode():
+                # ぱら
+                return self._visit_expr_AsCast(node)
             case _:
                 raise
+    
+    def _visit_expr_CallExpr(self, node:CallExprNode) -> TypeObject:
+        """
+        TODO: 関数呼び出しを実装する
+        TODO: Exprを解析してその型を返す
+        TODO: Argが合致しているか
+        """
+        node.func_name
+    
+    def _visit_expr_literal(self, node:Literal) -> TypeObject:
+        """
+        NumberNode
+        VariableNode
+        FunctionNode
+        StringNode
+        NullNode
+        NoneNode
+        BoolNode
+        """
+        match(node):
+            case NumberNode():
+                return LiteralNumberType()
+            case VariableNode():
+                # TODO: symbolアクセス
+                if node.symbol is None:
+                    raise
+                if node.symbol.Type_analysis is None:
+                    raise self._util_CallError("型が未決定です。前方宣言または正しい位置での宣言が必要です", node.line, node.column, "", node.len)
+                return node.symbol.Type_analysis
+            case StringNode():
+                return LiteralStringType()
+            case NullNode():
+                return TypeNull()
+            case NoneNode():
+                return TypeNone()
+            case BoolNode():
+                return TypeBool()
+            case _:
+                # TODO: だとおもった？
+                raise
+
 
     def _visit_expr_binary(self, node:BinaryOpNode) -> TypeObject:
         left = self._visit_expr_(node.left)
         right = self._visit_expr_(node.right)
         
         # アウトな奴
-        ProhibitedScheme:dict[str, list[type[TypeObject]]] = {
-            "+":[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
-            "-":[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
-            "*":[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
-            "/":[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
+        ProhibitedScheme:dict[TokenType, list[type[TypeObject]]] = {
+            TokenType.ADD:[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
+            TokenType.MINUS:[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
+            TokenType.MULT:[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
+            TokenType.DIV:[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
         }
 
         # 結果の型。
-        TypeScheme:dict[str, TypeObject] = {
-            "+":TypeTemplate(1),
-            "-":TypeTemplate(1),
-            "*":TypeTemplate(1),
-            "/":TypeTemplate(1),
+        TypeScheme:dict[TokenType, TypeObject] = {
+            TokenType.ADD:TypeTemplate(1),
+            TokenType.MINUS:TypeTemplate(1),
+            TokenType.MULT:TypeTemplate(1),
+            TokenType.DIV:TypeTemplate(1),
         }
         # 型のget
         right = self._visit_expr_(node.right)
         left = self._visit_expr_(node.left)
-        prohib = ProhibitedScheme[node.op.String]
+        prohib = ProhibitedScheme[node.op.type]
         # 明らかアウト
         if type(right) in prohib or type(left) in prohib:
-            self._util_CallError(f"Op {node.op.String}", node.line, node.column, "BinaryOp", node.len)
+            raise self._util_CallError(f"Op {node.op.String}", node.line, node.column, "BinaryOp", node.len)
+        
+        # もしもし「しもしも」
+        if isinstance(left, LiteralType) and isinstance(right, LiteralType):
+            if type(left) != type(right):
+                if isinstance(left, LiteralDecimalType) or isinstance(right, LiteralDecimalType):
+                    left = right = LiteralDecimalType() 
+
+        # リテラルと確定型の型合わせ
+        # 左がLiteral、右が確定型
+        if isinstance(left, LiteralType) and not isinstance(right, LiteralType):
+            if self._can_literal_bind(left, right):
+                left = right
+        # 右がLiteral、左が確定型
+        elif isinstance(right, LiteralType) and not isinstance(left, LiteralType):
+            if self._can_literal_bind(right, left):
+                right = left
         # 型を出す
-        scheme =TypeScheme[node.op.String]
+        scheme =TypeScheme[node.op.type]
         if not right == left:
             self._util_CallError("type out", node.line, node.column, "binary", node.len)
         if isinstance(scheme, TypeTemplate):
             return right
         return scheme
-
+    
+    def _can_literal_bind(self, literal: LiteralType, target: TypeObject) -> bool:
+        """リテラルがターゲットの型に化けられるか判定する"""
+        if isinstance(literal, LiteralNumberType):
+            return isinstance(target, TypeInt) # すべての整数系
+        if isinstance(literal, LiteralDecimalType):
+            return isinstance(target, TypeFloat)
+        if isinstance(literal, LiteralStringType):
+            return isinstance(target, TypeString)
+        return False
 
 # 借用チェック
 class BorrowingChecker:
     def __init__(self, node:Program) -> None:
         pass
+
+if __name__ == "__main__":
+    t = BinaryOpNode(0,0,0,NumberNode(0,0,0,42,Token(TokenType.NUMBER, 42),10),Token(TokenType.ADD, "+"), NumberNode(0,0,0,42,Token(TokenType.NUMBER, 42),10))
+    tc = TypeChecker(Program(0,0,0,[]),"")
+    print(tc._visit_expr_binary(t))

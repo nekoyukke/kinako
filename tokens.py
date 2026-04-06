@@ -13,6 +13,8 @@ class TokenType(Enum):
     VAL = "val"
     LET = "let"
     CONST = "const"
+    BORROW = "borrow"
+    MUT = "mut"
     IF = "if"
     ELSE = "else"
     ELIF = "elif"
@@ -29,6 +31,7 @@ class TokenType(Enum):
     IMPORT = "import"
     IN = "in"
     ARGS = "...args"
+    AS = "as"
 
     # アノテーション
     UNSAFE = "@unsafe"
@@ -65,9 +68,6 @@ class TokenType(Enum):
     tANYFLOAT = "@float@"
 
     # 借用・所有権型
-    tREF = "ref"
-    tMUT = "&mut"
-    tCOPY = "&copy"
     tBORROW = "&borrow"
 
     # MEM

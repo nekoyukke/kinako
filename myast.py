@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from tokens import Token
 from enum import Enum
-
+from type import TypeObject
 # 解析用
 @dataclass
 class Symbol:
@@ -13,6 +13,7 @@ class Symbol:
     type: Optional[TypeNode] = None # 型
     is_extern: bool = False # 外部
     member: list[Symbol] = field(default_factory=list["Symbol"])
+    Type_analysis: Optional[TypeObject] = None # 型
 
 
 
@@ -94,7 +95,6 @@ class Literal(Expr):
 
 @dataclass
 class NumberNode(Literal):
-    
     # 数字
     value: int
     token: Token
@@ -107,11 +107,6 @@ class VariableNode(Literal):
     token: Token
     symbol: Optional[Symbol] = None
 
-@dataclass
-class FunctionNode(Literal):
-    # 関数
-    name: str
-    token: Token
 
 @dataclass
 class StringNode(Literal):
@@ -173,7 +168,7 @@ class AssginType(Enum):
     NONECOALESCING_ASSIGN = "%%="
 
 @dataclass
-class AssginNode(Expr):
+class AssignNode(Expr):
     # 等号
     left: Expr
     right: Expr
@@ -196,6 +191,11 @@ class IndexAccessNode(Expr):
     addr: Expr
     index: Expr
 
+@dataclass
+class AsCastNode(Expr):
+    obj: Expr
+    type: TypeNode
+
 # --- Statements (処理を行う) ---
 @dataclass
 class Stmt(ASTNode):
@@ -207,6 +207,8 @@ class VariableType(Enum):
     CONST = 0
     VAL = 1
     LET = 2
+    MUT = 3
+    BORROW = 4
 
 @dataclass
 class DeclarationNode(Stmt):
@@ -215,7 +217,7 @@ class DeclarationNode(Stmt):
     left: VariableNode
     right: Optional[Expr]
     type: TypeNode
-    vt: VariableType
+    vartype: VariableType
     symbol: Optional[Symbol] = None
 
 @dataclass
