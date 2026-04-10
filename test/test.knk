@@ -1,6 +1,6 @@
-fn int main(){
-    fn int foo(){
-        return 0;
-    }
-    return foo;
+import std.io;
+fn Ptr<int> main() {
+    let int foo = 1;
+    let int8 bar = foo as int8;
+    return &(bar as int);
 }

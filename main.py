@@ -20,7 +20,11 @@ def run_source(source: str) -> None:
     node = ast(tokens, source)
     sc = ScopeChecker(node, source)
     sc.reset()
-    print(sc.visit_Scope_Check())
+    print("sccheck")
+    print(sc.visit_Scope_Check().__repr__())
+    tc = TypeChecker(node, source)
+    print("tccheck")
+    print(tc.visit_TypeCheck())
     return None
 
 if __name__ == "__main__":
@@ -30,8 +34,10 @@ if __name__ == "__main__":
             print(run_source(f.read()))
     else:
         while True:
-            try:
+            line = input(">>> ")
+            print(run_source(line))
+            """try:
                 line = input(">>> ")
                 print(run_source(line))
             except Exception as e:
-                print("Error:", e)
+                print("Error:", e)"""

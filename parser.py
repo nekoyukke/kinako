@@ -79,30 +79,6 @@ def ast(Tokens:list[Token], source: str):
     def Block() -> Stmt:
         lbrace =  ex(TokenType.LBRACE, "block", "Expected '{'")
         
-        lifetime: Optional[LifetimeNode] = None
-        captures: list[VariableNode] = []
-
-        # ライフタイムの解析: `a
-        if cu().type == TokenType.BACKQUOTE:
-            ad() # ` を消費
-            # ` の直後は識別子（名前）を期待
-            lt_tok = ex(TokenType.ID, "lifetime", "Expected name after '`'")
-            lifetime = LifetimeNode(lt_tok.line, lt_tok.column, 1, "`" + lt_tok.String, lt_tok)
-
-        # キャプチャリストの解析: [id1, id2, ...]
-        if cu().type == TokenType.LBRACKET:
-            ad() # [ を消費
-            if cu().type != TokenType.RBRACKET: # 空でない場合
-                while True:
-                    id_tok = ex(TokenType.ID, "capture", "Expected identifier in capture list")
-                    captures.append(VariableNode(id_tok.line, id_tok.column, len(id_tok.String), id_tok.String, id_tok))
-                    
-                    if cu().type == TokenType.COMMA:
-                        ad()
-                        continue
-                    break
-            ex(TokenType.RBRACKET, "block", "Expected ']'")
-
         # 内部の Stmt を解析
         stmts: list[Stmt] = []
         while cu().type != TokenType.RBRACE:
@@ -110,7 +86,7 @@ def ast(Tokens:list[Token], source: str):
             
         ex(TokenType.RBRACE, "block", "Expected '}'")
         
-        return BlockNode(lbrace.line,lbrace.column,1,stmts, lifetime, captures)
+        return BlockNode(lbrace.line,lbrace.column,1,stmts)
             
     
     def If() -> Stmt:
@@ -405,6 +381,12 @@ def ast(Tokens:list[Token], source: str):
         if cus.type in (TokenType.MULT, TokenType.ADD):
             ad()
             return UnaryOpNode(cus.line,cus.column, len(cus.String), cus, Prefix()) # 再帰して重ね掛け対応
+        if cus.type == TokenType.BORROW:
+            ad()
+            return BorrowOpNode(cus.line, cus.column, len(cus.String), Prefix()) # 再帰で重ね掛け
+        if cus.type == TokenType.MOVE:
+            ad()
+            return MoveOpNode(cus.line, cus.column, len(cus.String), Prefix()) # 再帰で重ね掛け
         return unary() # postfixへ
 
     def unary() -> Expr:
@@ -421,11 +403,7 @@ def ast(Tokens:list[Token], source: str):
             cus = cu("postfix")
             if cus.type == TokenType.DOT:
                 ad()
-                if cu().type == TokenType.BORROW:
-                    member = ex(TokenType.BORROW)
-                    member.type = TokenType.ID
-                else:
-                    member = ex(TokenType.ID, "postfix")
+                member = ex(TokenType.ID, "postfix")
                 node = MemberAccessNode(cus.line,cus.column, len(cus.String), node, VariableNode(member.line, member.column, len(member.String), member.String, member))
             elif cus.type == TokenType.LBRACKET:
                 ad()
@@ -470,6 +448,11 @@ def ast(Tokens:list[Token], source: str):
             if isinstance(cus.value, str|float):
                 raise
             return NumberNode(cus.line,cus.column, len(cus.String), cus.value, cus, 10)
+        elif (cus.type == TokenType.DECIMAL):
+            ad()
+            if isinstance(cus.value, str):
+                raise
+            return DecimalNode(cus.line,cus.column, len(cus.String), cus.value, cus)
         elif (cus.type == TokenType.ID):
             ad()
             if isinstance(cus.value, int|float):

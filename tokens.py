@@ -14,6 +14,7 @@ class TokenType(Enum):
     LET = "let"
     CONST = "const"
     BORROW = "borrow"
+    MOVE = "move"
     MUT = "mut"
     IF = "if"
     ELSE = "else"
@@ -172,15 +173,6 @@ class Token(object):
     @classmethod
     def zero(cls):
         return Token(TokenType.END, 0)
-
-class Borrow(Enum):
-    Have = 0
-    Borrow = 1
-    Hum = 2
-    Ref = 3
-    Humed = 4
-    Borrowed = 5
-    Moved = 6
 
 _t_int = (
     TokenType.tINT8,

@@ -1,6 +1,7 @@
 from myast import *
 from tokens import *
 from std.stdclass import *
+from type import TypeFunction, TypeString, TypeNone
 
 STD:dict[str, dict[str, dict[str, Symbol]]] = {
     "std": {
@@ -31,7 +32,9 @@ STD:dict[str, dict[str, dict[str, Symbol]]] = {
                         ),
                         VariableNode(0,0,0,"s", Token.zero())
                     )]
-                )
+                ),
+                is_extern=True,
+                Type_analysis=TypeFunction([TypeString()], TypeNone())
             ),
             # "println": Symbol(...),
             # "File": Symbol(...),

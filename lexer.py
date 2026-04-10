@@ -70,13 +70,13 @@ def tokenize(source: str) -> list[Token]:
         # リテラル
         ("BACKQUOTE", r'`'),
         ('STR', r'"(\\.|[^"\\])*"'),
-        ('FLOAT', r'\d+\.\d+'),
+        ('DECIMAL', r'\d+\.\d+'),
         ('NUMBER', r'\d+'),
         ('ID', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ]
 
     KEYWORDS = {"let", "val", "const", "mut", "borrow", "fn", "null", "none", "true", "false", "if", "else", "elif"
-                , "null", "none", "while", "for", "return", "import", "in", "as"}
+                , "null", "none", "while", "for", "return", "import", "in", "as", "move"}
     TYPES = {"Dec", "Num", "Str", "Any", "List", "Array",
              "Tuple", "Class", "Map", "Funcion", "Dynamic", "Ptr",
              "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "int128", "uint128",
@@ -105,6 +105,10 @@ def tokenize(source: str) -> list[Token]:
         if kind == 'NUMBER':
             tokens.append(Token(TokenType.NUMBER, int(value), line, col, value))
             continue
+        if kind == 'DECIMAL':
+            tokens.append(Token(TokenType.DECIMAL, float(value), line, col, value))
+            continue
+        
         if kind is None:
             raise RuntimeError(f"予想外のトークン！{mo.group()}")
         if kind == 'SKIP' or kind == 'COMMENT':
