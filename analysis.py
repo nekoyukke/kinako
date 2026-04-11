@@ -1338,6 +1338,8 @@ class ImportNode(Stmt):
                     raise self._util_CallError(f"変数'{rab.from_.name}' 借用は移動できません", node.line, node.column, "", node.len)
                 if rb == Borrow.BORROWED:
                     raise self._util_CallError(f"変数'{rab.from_.name}' 借用は移動できません", node.line, node.column, "", node.len)
+                if rab.borrow == Borrow.UNINIT:
+                    raise self._util_CallError(f"変数'{rab.from_.name}'は未定義の可能性があります。", node.line, node.column, "", node.len)
                 rab.from_.borrow_state = Borrow.MOVED
                 return AnalysisBorrow(Borrow.ACTIVE, rab.from_)
 
@@ -1345,7 +1347,13 @@ class ImportNode(Stmt):
                 rab = self._visit_expr(node.right)
                 if rab is None:
                     raise self._util_CallError(f"一時的に破棄され、使用されない値は代入ができません。", node.line, node.column, "", node.len)
-                
+                # 借りる
+                if rab.borrow == Borrow.BORROW:
+                    raise self._util_CallError(f"変数'{rab.from_.name}'は二重借用状態にあります。", node.line, node.column, "", node.len)
+                if rab.borrow == Borrow.UNINIT:
+                    raise self._util_CallError(f"変数'{rab.from_.name}'は未定義の可能性があります。", node.line, node.column, "", node.len)
+                rab.from_.borrow_state = Borrow.BORROW
+                return AnalysisBorrow(Borrow.BORROW, rab.from_)
             case _:
                 raise self._util_CallError("なんですか、、、", node.line, node.column, "", node.len)
     
