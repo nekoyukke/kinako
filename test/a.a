@@ -1,0 +1,148 @@
+Program(
+  blocks=
+  [
+    ImportNode(
+      From=
+      MemberAccessNode(
+        left=
+        VariableNode(
+          name='std',
+          token=Token(ID, 'std', L1:8),
+          symbol=None
+        ),
+        right=
+        VariableNode(
+          name='io',
+          token=Token(ID, 'io', L1:12),
+          symbol=None
+        ),
+        symbol=None
+      ),
+      Import=Token(IMPORT, 'import', L1:1),
+      symbol=Symbol(name='io', fq_name='std.io')
+    ),
+    FunctionDefNode(
+      name=Token(ID, 'main', L2:8),
+      body=
+      BlockNode(
+        blocks=
+        [
+          DeclarationNode(
+            left=
+            VariableNode(
+              name='foo',
+              token=Token(ID, 'foo', L3:13),
+              symbol=None
+            ),
+            right=
+            NumberNode(
+              value=1,
+              token=Token(NUMBER, 1, L3:19),
+              base=10
+            ),
+            type=
+            TypeNode(
+              type_name='int',
+              token=Token(tINT, 'int', L3:9),
+              is_dynamic=False
+            ),
+            vartype=VariableType.LET,
+            symbol=Symbol(name='foo', fq_name='__main__file.Global.main_func.0_Block.foo')
+          ),
+          ExprStmtNode(
+            expr=
+            CallExprNode(
+              func_name=
+              MemberAccessNode(
+                left=
+                VariableNode(
+                  name='io',
+                  token=Token(ID, 'io', L4:5),
+                  symbol=Symbol(name='io', fq_name='std.io')
+                ),
+                right=
+                VariableNode(
+                  name='print',
+                  token=Token(ID, 'print', L4:8),
+                  symbol=None
+                ),
+                symbol=Symbol(name='print', fq_name='std.io.print')
+              ),
+              args=
+              [
+                StringNode(string='Hello World', token=Token(STR, 'Hello World', L4:14))
+              ]
+            )
+          ),
+          ExprStmtNode(
+            expr=
+            CallExprNode(
+              func_name=
+              MemberAccessNode(
+                left=
+                VariableNode(
+                  name='io',
+                  token=Token(ID, 'io', L5:5),
+                  symbol=Symbol(name='io', fq_name='std.io')
+                ),
+                right=
+                VariableNode(
+                  name='print',
+                  token=Token(ID, 'print', L5:8),
+                  symbol=None
+                ),
+                symbol=Symbol(name='print', fq_name='std.io.print')
+              ),
+              args=
+              [
+                CallExprNode(
+                  func_name=
+                  MemberAccessNode(
+                    left=
+                    VariableNode(
+                      name='foo',
+                      token=Token(ID, 'foo', L5:14),
+                      symbol=Symbol(name='foo', fq_name='__main__file.Global.main_func.0_Block.foo')
+                    ),
+                    right=
+                    VariableNode(
+                      name='ToString',
+                      token=Token(ID, 'ToString', L5:18),
+                      symbol=None
+                    ),
+                    symbol=None
+                  ),
+                  args=[]
+                )
+              ]
+            )
+          ),
+          ReturnStmtNode(
+            token=Token(RETURN, 'return', L6:5),
+            value=
+            NumberNode(
+              value=0,
+              token=Token(NUMBER, 0, L6:12),
+              base=10
+            )
+          )
+        ]
+      ),
+      type=
+      FunctionTypeNode(
+        type_name='tFUNCTION',
+        token=Token(END, 0, L0:0),
+        is_dynamic=False,
+        param_types=[],
+        return_type=
+        TypeNode(
+          type_name='int',
+          token=Token(tINT, 'int', L2:4),
+          is_dynamic=False
+        )
+      ),
+      params=[],
+      symbol=Symbol(name='main', fq_name='__main__file.Global.main_')
+    )
+  ]
+)

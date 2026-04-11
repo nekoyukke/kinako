@@ -1,0 +1,74 @@
+                    case TokenType.tNUM:
+                        pass
+                    case TokenType.tDEC:
+                        pass
+                    case TokenType.tSTR:
+                        pass
+                    case TokenType.tANY:
+                        pass
+                    case TokenType.tLIST:
+                        pass
+                    case TokenType.tARRAY:
+                        pass
+                    case TokenType.tDYNAMIC:
+                        pass
+                    case TokenType.tMAP:
+                        pass
+                    case TokenType.tPTR:
+                        pass
+                    case TokenType.tBOOL:
+                        pass
+                    case TokenType.tTUPLE:
+                        pass
+                    case TokenType.tFUNCTION:
+                        pass
+                    case TokenType.tCLASS:
+                        pass
+                    case TokenType.tANYNUMBER:
+                        pass
+                    case TokenType.tANYFLOAT:
+                        pass
+                    case TokenType.tREF:
+                        pass
+                    case TokenType.tMUT:
+                        pass
+                    case TokenType.tCOPY:
+                        pass
+                    case TokenType.tBORROW:
+                        pass
+                    case TokenType.tINT8:
+                        pass
+                    case TokenType.tUINT8:
+                        pass
+                    case TokenType.tINT16:
+                        pass
+                    case TokenType.tUINT16:
+                        pass
+                    case TokenType.tINT32:
+                        pass
+                    case TokenType.tUINT32:
+                        pass
+                    case TokenType.tINT64:
+                        pass
+                    case TokenType.tUINT64:
+                        pass
+                    case TokenType.tINT128:
+                        pass
+                    case TokenType.tUINT128:
+                        pass
+                    case TokenType.tFLOAT32:
+                        pass
+                    case TokenType.tFLOAT64:
+                        pass
+                    case TokenType.tFLOAT:
+                        pass
+                    case TokenType.tDOUBLE:
+                        pass
+                    case TokenType.tINT:
+                        pass
+                    case TokenType.tLONG:
+                        pass
+                    case TokenType.tSHORT:
+                        pass
+                    case TokenType.tCHAR:
+                        pass
