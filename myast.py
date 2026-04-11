@@ -258,11 +258,11 @@ class UnaryOpNode(Expr):
 
 @dataclass(repr=False)
 class BorrowOpNode(Expr):
-    right: Expr
-    
+    right: VariableNode
+
 @dataclass(repr=False)
 class MoveOpNode(Expr):
-    right: Expr
+    right: VariableNode
 
 class AssginType(Enum):
     ASSIGN = "="
@@ -304,6 +304,15 @@ class IndexAccessNode(Expr):
 class AsCastNode(Expr):
     obj: Expr
     type: TypeNode
+
+@dataclass(repr=False)
+class DereferenceNode(Expr):
+    right: Expr
+
+@dataclass(repr=False)
+class ReferenceNode(Expr):
+    right: Expr
+
 
 # --- Statements (処理を行う) ---
 @dataclass(repr=False)

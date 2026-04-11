@@ -436,6 +436,13 @@ class ScopeChecker:
             case BorrowOpNode():
                 self._visit_expr(node.right)
                 return
+            case ReferenceNode():
+                self._visit_expr(node.right)
+                return
+
+            case DereferenceNode():
+                self._visit_expr(node.right)
+                return
             case _:
                 return
 
@@ -752,7 +759,7 @@ class TypeChecker:
     def _visit_expr_can_change(self, node:Expr) -> TypeObject:
         # 可変か
         # じっしつらっぱ
-        if not isinstance(node, (VariableNode, MemberAccessNode, IndexAccessNode, UnaryOpNode)):
+        if not isinstance(node, (VariableNode, MemberAccessNode, IndexAccessNode, ReferenceNode, DereferenceNode)):
             self._util_CallError(
                 "This expression must be a modifiable expression",
                 node.line,
@@ -809,8 +816,19 @@ class TypeChecker:
                 return self._visit_expr_MoveOp(node)
             case BorrowOpNode():
                 return self._visit_expr_BorrowOp(node)
+            case ReferenceNode():
+                return TypePtr(self._visit_expr_(node.right))
+            case DereferenceNode():
+                return self._visit_expr_Dereference(node)
             case _:
                 raise
+    
+    def _visit_expr_Dereference(self, node:DereferenceNode):
+        res = self._visit_expr_(node.right)
+        if not isinstance(res, TypePtr):
+            # 使えない
+            raise self._util_CallError(f"不明な呼び出し。{res}はポインタ型ではありません。", node.line, node.column, "", node.len)
+        return res.Generic
         
     def _visit_expr_MoveOp(self, node:MoveOpNode) -> TypeObject:
         to = self._visit_expr_(node.right)
@@ -922,6 +940,14 @@ class TypeChecker:
                 return self._visit_expr_CallExpr_InSide(node.right)
             case UnaryOpNode():
                 return self._visit_expr_CallExpr_InSide(node.right)
+            case ReferenceNode():
+                return TypePtr(self._visit_expr_CallExpr_InSide(node.right))
+            case DereferenceNode():
+                res = self._visit_expr_CallExpr_InSide(node.right)
+                if not isinstance(res, TypePtr):
+                    # 使えない
+                    raise self._util_CallError(f"不明な呼び出し。{res}はポインタ型ではありません。", node.line, node.column, "", node.len)
+                return res.Generic
             case VariableNode():
                 if node.symbol is None:
                     raise self._util_CallError(f"Symbolデータがありません。不明'{node.name}'", node.line, node.column, "", node.len)
@@ -1000,14 +1026,12 @@ class TypeChecker:
         
         # アウトな奴
         ProhibitedScheme:dict[TokenType, list[type[TypeObject]]] = {
-            TokenType.ADD:[],
             TokenType.PLUS:[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
             TokenType.MINUS:[TypeArray, TypeList, TypeBool, TypeFunction, TypeString],
         }
 
         # 結果の型。
         TypeScheme:dict[TokenType, TypeObject] = {
-            TokenType.ADD:TypePtr(TypeTemplate(1)),
             TokenType.PLUS:TypeTemplate(1),
             TokenType.MINUS:TypeTemplate(1),
         }
@@ -1149,23 +1173,35 @@ class BorrowingChecker:
     def __init__(self, node:Program, source:str) -> None:
         self.node = node
         self.source = source
-        self.borrow_ledger_stack: list[list[dict[Symbol, list[Symbol]]]] = []
+        self.borrow_ledger_stack: list[dict[Symbol, Symbol]] = []
+        self.lender_map: dict[Symbol, set[Symbol]] = {}
     
     def new_Frame(self) -> None:
-        self.borrow_ledger_stack.append([])
+        self.borrow_ledger_stack.append({})
         return
     
-    def pop_Frame(self) -> list[dict[Symbol, list[Symbol]]] | None:
+    def pop_Frame(self) -> dict[Symbol, Symbol] | None:
         if len(self.borrow_ledger_stack) == 0:
             return None
         res = self.borrow_ledger_stack.pop()
         return res
     
-    def get_Frame(self) -> list[dict[Symbol, list[Symbol]]] | None:
+    def get_Frame(self) -> dict[Symbol, Symbol] | None:
         if len(self.borrow_ledger_stack) == 0:
             return None
         res = self.borrow_ledger_stack[-1]
         return res
+
+    def get_borrow(self, symbol:Symbol) -> Symbol | None:
+        for frame in reversed(self.borrow_ledger_stack):
+            if symbol in frame:
+                return frame[symbol]
+        return None
+    
+    def get_borrower(self, symbol:Symbol) -> set[Symbol] | None:
+        if not symbol in self.lender_map:
+            return None
+        return self.lender_map[symbol]
     
     def _util_CallError(self, message: str, line: int, column: int, name: str, len: int) -> AnalysisError:
         raise AnalysisError(message, line, column, self.source, name, len)
@@ -1234,27 +1270,87 @@ class ImportNode(Stmt):
             case AssignNode():
                 # 禿げろ
                 lab = self._visit_expr_can_change(node.left)
+                if lab is None:
+                    raise self._util_CallError(f"一時的に破棄され、使用されない値は代入ができません。", node.line, node.column, "", node.len)
                 rab = self._visit_expr(node.right)
                 lb = lab.borrow
                 if lb == Borrow.BORROW:
-                    raise self._util_CallError(f"変数'{}'は変数'{}'から型:{}のオブジェクトを借りています。")
+                    res = self.get_borrow(lab.from_)
+                    if res is None:
+                        raise self._util_CallError(f"変数'{lab.from_.name}'は'不明な変数エラー!Symbolが規定値ではありません。'から型:{lab.from_.Type_analysis}のオブジェクトを借りています。", node.line, node.column, "", node.len)
+                    raise self._util_CallError(f"変数'{lab.from_.name}'は変数'{res.name}'から型:{lab.from_.Type_analysis}のオブジェクトを借りています。", node.line, node.column, "", node.len)
                 if lb == Borrow.BORROWED:
-                    raise self._util_CallError(f"変数'{}'は変数'{}'に型:{}のオブジェクトを借りられています。")
+                    borrower = self.get_borrower(lab.from_)
+                    if borrower is None:
+                        raise
+                    raise self._util_CallError(f"変数'{lab.from_.name}'は変数'{"', '".join([i.name for i in borrower])}'に型:{lab.from_.Type_analysis}のオブジェクトを借りられています。", node.line, node.column, "", node.len)
                 if not rab is None:
                     rb = rab.borrow
                     if rb == Borrow.UNINIT:
-                        raise self._util_CallError(f"変数'{}'は内容が入らない可能性があるため代入は不可能です。")
-                    if rab.from_.Type_analysis is None:
-                        raise
-                    # 神
-                    
-                
+                        raise self._util_CallError(f"変数'{rab.from_.name}'は内容が入らない可能性があるため代入は不可能です。", node.line, node.column, "", node.len)
                 return AnalysisBorrow(Borrow.ACTIVE, lab.from_)
+            case BinaryOpNode():
+                lab = self._visit_expr(node.left)
+                rab = self._visit_expr(node.right)
+                return None
+            case UnaryOpNode():
+                rab = self._visit_expr(node.right)
+                return None
+            # ReferenceとDereferenceはポインタ演算であり、借用はborrowOpNodeやmoveOpNodeが担当する
+            case ReferenceNode():
+                ref = self._visit_expr(node.right)
+                if ref is None:
+                    raise self._util_CallError(f"一時的に破棄され、使用されない値にはリファレンスを実行できません", node.line, node.column, "", node.len)
+                return AnalysisBorrow(Borrow.ACTIVE, ref.from_)
+            case DereferenceNode():
+                ref = self._visit_expr(node.right)
+                if ref is None:
+                    raise self._util_CallError(f"一時的に破棄され、使用されない値にはデリファレンスを実行できません", node.line, node.column, "", node.len)
+                refb = ref.borrow
+                if refb == Borrow.UNINIT:
+                    raise self._util_CallError(f"内部が不明な変数'{ref.from_.name}'。", node.line, node.column, "", node.len)
+                return AnalysisBorrow(Borrow.ACTIVE, ref.from_)
+            case CallExprNode():
+                for arg in node.args:
+                    self._visit_expr(arg)
+                self._visit_expr_can_change(node.func_name)
+                return None
+            case Literal():
+                return None
+            case MemberAccessNode():
+                self._visit_expr(node.left)
+                return None
+            case IndexAccessNode():
+                self._visit_expr(node.addr)
+                self._visit_expr(node.index)
+                return None
+            case AsCastNode():
+                self._visit_expr(node.obj)
+                return None
+            # 地獄
+            case MoveOpNode():
+                rab = self._visit_expr(node.right)
+                if rab is None:
+                    raise self._util_CallError(f"一時的に破棄され、使用されない値は代入ができません。", node.line, node.column, "", node.len)
+                # MOVEする
+                rb = rab.borrow
+                if rb == Borrow.BORROW:
+                    raise self._util_CallError(f"変数'{rab.from_.name}' 借用は移動できません", node.line, node.column, "", node.len)
+                if rb == Borrow.BORROWED:
+                    raise self._util_CallError(f"変数'{rab.from_.name}' 借用は移動できません", node.line, node.column, "", node.len)
+                rab.from_.borrow_state = Borrow.MOVED
+                return AnalysisBorrow(Borrow.ACTIVE, rab.from_)
+
+            case BorrowOpNode():
+                rab = self._visit_expr(node.right)
+                if rab is None:
+                    raise self._util_CallError(f"一時的に破棄され、使用されない値は代入ができません。", node.line, node.column, "", node.len)
+                
             case _:
                 raise self._util_CallError("なんですか、、、", node.line, node.column, "", node.len)
     
-    def _visit_expr_can_change(self, node:Expr) -> AnalysisBorrow:
-        if not isinstance(node, (VariableNode, MemberAccessNode, IndexAccessNode, UnaryOpNode)):
+    def _visit_expr_can_change(self, node:Expr) -> AnalysisBorrow | None:
+        if not isinstance(node, (VariableNode, MemberAccessNode, IndexAccessNode, ReferenceNode, DereferenceNode)):
             self._util_CallError(
                 "変更不可なオブジェクト。",
                 node.line,
@@ -1263,20 +1359,7 @@ class ImportNode(Stmt):
                 node.len
             )
             raise
-        if isinstance(node, UnaryOpNode):
-            if not node.op.type in (TokenType.MULT, TokenType.ADD):
-                self._util_CallError(
-                    "",
-                    node.line,
-                    node.column,
-                    "_visit_expr_can_change",
-                    node.len
-                )
-                raise
         res = self._visit_expr(node)
-        # res is none
-        if res is None:
-            raise self._util_CallError("不明なエラー。", node.line, node.column, "", node.len)
         return res
 
 

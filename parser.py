@@ -378,15 +378,20 @@ def ast(Tokens:list[Token], source: str):
     
     def Prefix() -> Expr:
         cus = cu()
-        if cus.type in (TokenType.MULT, TokenType.ADD):
+        if cus.type == TokenType.MULT:
             ad()
-            return UnaryOpNode(cus.line,cus.column, len(cus.String), cus, Prefix()) # 再帰して重ね掛け対応
+            return DereferenceNode(cus.line, cus.column, len(cus.String), Prefix())
+        if cus.type == TokenType.ADD:
+            ad()
+            return ReferenceNode(cus.line, cus.column, len(cus.String), Prefix())
         if cus.type == TokenType.BORROW:
             ad()
-            return BorrowOpNode(cus.line, cus.column, len(cus.String), Prefix()) # 再帰で重ね掛け
+            member = ex(TokenType.ID, "postfix")
+            return BorrowOpNode(cus.line, cus.column, len(cus.String), VariableNode(member.line, member.column, len(member.String), member.String, member)) # 再帰で重ね掛け
         if cus.type == TokenType.MOVE:
             ad()
-            return MoveOpNode(cus.line, cus.column, len(cus.String), Prefix()) # 再帰で重ね掛け
+            member = ex(TokenType.ID, "postfix")
+            return MoveOpNode(cus.line, cus.column, len(cus.String), VariableNode(member.line, member.column, len(member.String), member.String, member)) # 再帰で重ね掛け
         return unary() # postfixへ
 
     def unary() -> Expr:
