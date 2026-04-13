@@ -1354,6 +1354,7 @@ class ImportNode(Stmt):
                     raise self._util_CallError(f"変数'{rab.from_.name}'は未定義の可能性があります。", node.line, node.column, "", node.len)
                 rab.from_.borrow_state = Borrow.BORROW
                 return AnalysisBorrow(Borrow.BORROW, rab.from_)
+            case 
             case _:
                 raise self._util_CallError("なんですか、、、", node.line, node.column, "", node.len)
     
