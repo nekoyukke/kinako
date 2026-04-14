@@ -25,6 +25,9 @@ def run_source(source: str) -> None:
     tc = TypeChecker(node, source)
     print("tccheck")
     print(tc.visit_TypeCheck())
+    bc = BorrowingChecker(node, source)
+    print("bcchek")
+    print(bc.visit_BorrowingChecker())
     return None
 
 if __name__ == "__main__":

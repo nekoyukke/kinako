@@ -77,7 +77,7 @@ def tokenize(source: str) -> list[Token]:
 
     KEYWORDS = {"let", "val", "const", "mut", "borrow", "fn", "null", "none", "true", "false", "if", "else", "elif"
                 , "null", "none", "while", "for", "return", "import", "in", "as", "move"}
-    TYPES = {"Dec", "Num", "Str", "Any", "List", "Array",
+    TYPES = {"Decimal", "Number", "String", "Any", "List", "Array",
              "Tuple", "Class", "Map", "Funcion", "Dynamic", "Ptr",
              "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "int128", "uint128",
              "float32", "float64",

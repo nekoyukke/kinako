@@ -6,6 +6,7 @@ from typing import Callable
 
 def ast(Tokens:list[Token], source: str):
     pos = 0
+    exp = Program(0,0,0,[],[], [])
 
     def ad():
         nonlocal pos
@@ -38,10 +39,14 @@ def ast(Tokens:list[Token], source: str):
             cus = cu("binary_op")
         return nod
     
-    def program(type:TokenType):
-        exp = Program(0,0,0,[])
-        while cu("program").type != type:
-            exp.blocks += [stmt()]
+    def program(t:TokenType):
+        nonlocal exp
+        exp = Program(0,0,0,[],[], [])
+        while cu("program").type != t:
+            res = stmt()
+            if isinstance(res, ExprStmtNode)and type(res.expr) == Expr:
+                continue
+            exp.blocks += [res]
         return exp
     
     def stmt() -> Stmt:
@@ -70,12 +75,13 @@ def ast(Tokens:list[Token], source: str):
                 return ExprStmtNode(start.line, start.column, end.column - start.column, exp)
     
     def Import() -> Stmt:
+        nonlocal exp
         tok = cu()
         ad()
-        expr_import = expr()
+        expr_import = ex(TokenType.STR)
         semi = ex(TokenType.SEMI)
-        return ImportNode(tok.line, tok.column, semi.column - tok.column + 1, expr_import, tok)
-
+        exp.import_stmt += [ImportNode(tok.line, tok.column, semi.column - tok.column + 1, StringNode(expr_import.line, expr_import.column, len(expr_import.String), expr_import.String, expr_import), tok)]
+        return ExprStmtNode(tok.line, tok.column, len(tok.String), Expr(tok.line, tok.column, len(tok.String)))
     def Block() -> Stmt:
         lbrace =  ex(TokenType.LBRACE, "block", "Expected '{'")
         

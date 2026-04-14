@@ -1,0 +1,6 @@
+import "std/io.knk";
+
+fn List<int> main() {
+    val List<int> res = 1..1000;
+    return res;
+}
