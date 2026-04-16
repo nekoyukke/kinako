@@ -1,0 +1,9 @@
+fn none std_io_print(String s) {
+    return none;
+}
+fn none std_io_println(String s) {
+    return none;
+}
+fn String int_to_string(int d) {
+    return "";
+}

@@ -174,3 +174,8 @@ Generic = (
     TypePtr,
     TypeBorrow
 )
+
+EazyContainer = (
+    TypeList,
+    TypeArray,
+)

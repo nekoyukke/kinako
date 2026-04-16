@@ -1,0 +1,8 @@
+import "std/io.knk";
+
+let List<int> res;
+
+fn Ptr<List<int> > main() {
+    res = 1..1000;
+    return &res;
+}

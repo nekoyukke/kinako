@@ -12,11 +12,16 @@ class Borrow(Enum):
     ACTIVE = 3 # 有効
     BORROWED = 4 # 借りられている
     BORROW = 5 # 借りている
+    POTENTIAL = 6 # Potentially effective 潜在的な有効可能性
 
 @dataclass
 class AnalysisBorrow():
     borrow:Borrow
     from_:Symbol
+
+class ReturnType(Enum):
+    MOVE = 0
+    ELSE = 1
 
 # 解析用
 @dataclass
@@ -28,7 +33,12 @@ class Symbol:
     is_extern: bool = False # 外部
     member: list[Symbol] = field(default_factory=list["Symbol"])
     Type_analysis: Optional[TypeObject] = None # 型
-    borrow_state:Borrow = Borrow.NONE
+    def __hash__(self):
+        return hash(self.fq_name)
+    def __eq__(self, other):
+        return isinstance(other, Symbol) and self.fq_name == other.fq_name
+
+
 
 
 
@@ -396,6 +406,8 @@ class ClassDefNode(Stmt):
 @dataclass(repr=False)
 class Program(Stmt):
     blocks: list[Stmt]
+    imports: list['Program']
+    import_stmt: list[ImportNode]
 
 @dataclass(repr=False)
 class ForNode(Stmt):
@@ -408,6 +420,6 @@ class ForNode(Stmt):
 @dataclass(repr=False)
 class ImportNode(Stmt):
     
-    From: Expr
+    From: StringNode
     Import: Token
     symbol: Optional[Symbol] = None

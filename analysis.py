@@ -4,6 +4,10 @@ from myast import *
 from utils import AnalysisError, logging
 from tokens import *
 from type import *
+from myast import *
+from parser import *
+from tokens import *
+from lexer import tokenize
 
 @dataclass
 class Scope:
@@ -19,9 +23,9 @@ class ScopeChecker:
         self.Symbol: list[Symbol] = []
         self.Scope: Scope
         self.source = source
-        self.std: dict[str, dict[str, dict[str, Symbol]]] = {}
         self.blocknum:int = 0
-        self.classdata: dict[str, Symbol]
+        self.visited_imports: set[str] = set() # コロコロしちゃったとこ
+        self.current_file_path = ""
         """
         class A{
             let int a; // a
@@ -34,7 +38,6 @@ class ScopeChecker:
 
     def reset(self) -> None:
         self.Symbol = []
-        self.std = self._util_std_load()
         self.Scope = Scope({}, None) # Global
         return
     
@@ -71,8 +74,13 @@ class ScopeChecker:
         ForNode
         ImportNode
         """
-        blocks: list[Stmt] = self.node.blocks
-        for i in blocks:
+        for i in self.node.import_stmt:
+            self.__visit_Node(i)
+        blocks:list[Stmt] = []
+        for i in self.node.imports:
+            blocks += i.blocks
+        self.node.blocks = blocks + self.node.blocks
+        for i in self.node.blocks:
             # matchで分岐
             self.__visit_Node(i)
         
@@ -106,10 +114,6 @@ class ScopeChecker:
                 # 例外だしても、、いいよね？
                 raise
         
-    def _util_std_load(self):
-        import std.std
-        return std.std.STD
-    
     def _util_Symbolapp(self, symbol:Symbol, node:DeclarationNode | ClassDefNode | FunctionDefNode | ImportNode | ForNode):
         node.symbol = symbol
         self.Symbol.append(symbol)
@@ -161,6 +165,8 @@ class ScopeChecker:
             node.type,
             False
         )
+        node.symbol = symbol
+        node.left.symbol = symbol
         self._util_Symbolapp(symbol, node)
         return
 
@@ -177,7 +183,7 @@ class ScopeChecker:
             raise
         symbol = Symbol(
             node.name.String,
-            self._util_this_fqname() + "." + node.name.String + "_",
+            self._util_this_fqname() + "." + node.name.String,
             node,
             node.type,
             False
@@ -193,54 +199,34 @@ class ScopeChecker:
         self._util_Scope_pop()
         return
 
-    def _visit_import_module_path(self, node:Expr, importtok:Token) -> list[str]:
-        if type(node) == MemberAccessNode:
-            return self._visit_import_module_path(node.left, importtok) + [node.right.name]
-        if type(node) == VariableNode:
-            return [node.token.String]
-        else:
-            self._util_CallError("unknown Token of import path", importtok.line, importtok.column, "import path", importtok.String.__len__())
-            raise
 
     def _visit_Import(self, node:ImportNode) -> None:
-        path = self._visit_import_module_path(node.From, node.Import)
-        module = self.std
-        for p in path:
-            if p not in module:
-                self._util_CallError(
-                    f"Module '{'.'.join(path)}' not found{path}",
-                    node.line,
-                    node.column,
-                    "_visit_Import",
-                    node.len
-                )
-            module = module[p]
+        import os
 
-        name = path[-1] # std, io, print
+        base = os.path.dirname(self.current_file_path)
+        path = os.path.normpath(os.path.join(base, node.From.string))
+        abs_path = os.path.abspath(path)
 
-        if name in self.Scope.symbols:
-            prev = self.Scope.symbols[name].node
-            self._util_CallError(
-                f"'{name}' is already defined at line:{prev.line},column:{prev.column}.",
-                node.line,
-                node.column,
-                "_visit_Import",
-                node.len
-            )
+        if abs_path in self.visited_imports:
+            return
 
-        fq = ".".join(path)  # "std.io.print"
-        symbol = Symbol(
-            name=name,
-            fq_name=fq,
-            node=node,
-            type=None,  # モジュール型があるなら入れる
-            is_extern=True
-        )
+        self.visited_imports.add(abs_path)
 
-        self._util_Symbolapp(symbol, node)
-        node.symbol = symbol
+        if not os.path.exists(abs_path):
+            raise FileNotFoundError(f"Import file not found: {abs_path}")
 
-        return
+        with open(abs_path, encoding="utf-8") as f:
+           source = f.read()
+
+        toks = tokenize(source)
+        asts = ast(toks, source)
+        sc = ScopeChecker(asts, source)
+        sc.reset()
+        sc.visited_imports = self.visited_imports
+        sc.visit_Scope_Check()
+        self.Symbol += sc.Symbol
+        self.node.imports += [asts]
+        self.node.import_stmt.remove(node)
 
     def _visit_ClassDef(self, node:ClassDefNode) -> None:
         # まだ未実装
@@ -375,32 +361,6 @@ class ScopeChecker:
                     return
                 if node.left.symbol is None:
                     raise
-                if node.left.symbol.is_extern:
-                    fq_parts = node.left.symbol.fq_name.split(".")
-                    module = self.std
-                    try:
-                        for part in fq_parts:
-                            module = module[part]
-                        if isinstance(module, Symbol):
-                            raise
-                        if node.right.name in module:
-                            node.symbol = module[node.right.name]
-                        else:
-                            self._util_CallError(
-                                f"Undefined member '{node.right.name}' in '{node.left.symbol.fq_name}'",
-                                node.line,
-                                node.column,
-                                "_visit_MemberAccess",
-                                len(node.right.name)
-                            )
-                    except KeyError:
-                        self._util_CallError(
-                            f"Module '{node.left.symbol.fq_name}' not found",
-                            node.line,
-                            node.column,
-                            "_visit_MemberAccess",
-                            len(node.left.symbol.fq_name)
-                        )
                 return
             case IndexAccessNode():
                 self._visit_expr(node.addr)
@@ -450,7 +410,6 @@ class ScopeChecker:
 # 型のチェック
 # 演算・代入・暗黙変換
 class TypeChecker:
-    import std.stdclass
     def __init__(self, node:Program, source:str) -> None:
         self.node = node
         self.source = source
@@ -498,11 +457,11 @@ class TypeChecker:
                 )
             case TypeNode():
                 match (node.token.type):
-                    case TokenType.tNUM:
+                    case TokenType.tNUMBER:
                         return TypeInt(None, True, True)
-                    case TokenType.tDEC:
+                    case TokenType.tDECIMAL:
                         return TypeFloat(None, True)
-                    case TokenType.tSTR:
+                    case TokenType.tSTRING:
                         return TypeString()
                     case TokenType.tANY:
                         return TypeAny()
@@ -657,14 +616,15 @@ class TypeChecker:
         ft = self._util_Typenode2type(ftn)
         if not isinstance(ft, TypeFunction):
             raise self._util_CallError("不明な型情報", node.line, node.column, "", node.len)
+            return
         # 関数全体の型を Symbol に設定
         if node.symbol is None:
             raise self._util_CallError("関数のシンボルが設定されていません", node.line, node.column, "", node.len)
         node.symbol.Type_analysis = ft
-        ft = ft.retype
+        rt = ft.retype
         if not self.current_return_type is None:
             self.return_types.append(self.current_return_type)
-        self.current_return_type = ft
+        self.current_return_type = rt
         # 型データ追加
         for i in node.params:
             if i.name.symbol is None:
@@ -925,13 +885,20 @@ class TypeChecker:
         # (*foo)()
         if not isinstance(ft, TypeFunction):
             raise self._util_CallError("関数呼び出しには関数オブジェクトである必要があります。", node.line, node.column, "", node.len)
+        if len(node.args) != len(ft.params):
+            raise self._util_CallError(
+                f"引数の数が合致しません。{len(node.args)}と{len(ft.params)}",
+                node.line, node.column, "", node.len
+            )
+        if len(ft.params) == 0:
+            return ft.retype
         for i,d in enumerate(node.args):
             t = self._visit_expr_(d)
             if isinstance(t, LiteralType):
                 if self._can_literal_bind(t, ft.params[i]):
                     t = ft.params[i]
             if t != ft.params[i]:
-                raise self._util_CallError("型が合致しません。", d.line, d.column, "", d.len)
+                raise self._util_CallError(f"期待した型:{ft.params[i]}, 実際の型{t}。型が合致しません。", d.line, d.column, "", d.len)
         return ft.retype
     def _visit_expr_CallExpr_InSide(self, node:Expr) -> TypeObject:
         match (node):
@@ -958,24 +925,6 @@ class TypeChecker:
                 # bar.foo()
                 # 1.add()
                 if node.symbol is None:
-                    # もし "左" もないなら？
-                    # 意味わからん
-                    # もはや新選組
-                    # 右を撃ち値
-                    tp = self._visit_expr_(node.left)
-                    # 凶器のSATA
-                    # バイナリーっぽく(stdclass参照)
-                    ss = self.std.stdclass.make_std_class(tp)
-                    if ss is None:
-                        raise self._util_CallError(f"不明な型 '{ss}' 不明なメソッド呼び出し不可。", node.line, node.column, "", node.len)
-                    # 神
-                    ssn = [sym.name for sym in ss]
-                    if node.right.name in ssn:
-                        # お前を、、、、殺す！！
-                        tssn = ss[ssn.index(node.right.name)].Type_analysis
-                        if tssn is None:
-                            raise self._util_CallError("不明なエラー。stdが破損しています", node.line, node.column, "", node.len)
-                        return tssn
                     raise self._util_CallError(f"Symbolデータがありません。不明'{node.right.name}'", node.line, node.column, "", node.len)
                 if node.symbol.Type_analysis is None:
                     raise
@@ -1093,6 +1042,9 @@ class TypeChecker:
             TokenType.NE:[TypeFunction, TypeString, MiddleTypeObject, TypeNull, TypeNone],
             TokenType.LE:[TypeFunction, TypeString, MiddleTypeObject, TypeNull, TypeNone],
             TokenType.GE:[TypeFunction, TypeString, MiddleTypeObject, TypeNull, TypeNone],
+            TokenType.LABRACKET:[TypeFunction, TypeString, MiddleTypeObject, TypeNull, TypeNone],
+            TokenType.RABRACKET:[TypeFunction, TypeString, MiddleTypeObject, TypeNull, TypeNone],
+            TokenType.MOD:[TypeFunction, TypeString, MiddleTypeObject, TypeNull, TypeNone, TypeFloat],
         }
 
         # 結果の型。
@@ -1106,6 +1058,9 @@ class TypeChecker:
             TokenType.NE:TypeBool(),
             TokenType.LE:TypeBool(),
             TokenType.GE:TypeBool(),
+            TokenType.LABRACKET:TypeBool(),
+            TokenType.RABRACKET:TypeBool(),
+            TokenType.MOD:TypeTemplate(1),
         }
         # 型のget
         right = self._visit_expr_(node.right)
@@ -1166,6 +1121,8 @@ class TypeChecker:
             return isinstance(target, TypeFloat)
         if isinstance(literal, LiteralStringType):
             return isinstance(target, TypeString)
+        if isinstance(literal, LiteralContainerType):
+            return isinstance(target, (EazyContainer))
         return False
 
 # 借用チェック
@@ -1173,9 +1130,31 @@ class BorrowingChecker:
     def __init__(self, node:Program, source:str) -> None:
         self.node = node
         self.source = source
-        self.borrow_ledger_stack: list[dict[Symbol, Symbol]] = []
-        self.lender_map: dict[Symbol, set[Symbol]] = {}
+        self.borrow_ledger_stack: list[dict[Symbol, Symbol]] = [] # スコープ内での借用関係
+        self.lender_map: dict[Symbol, set[Symbol]] = {} # 誰に借りられているか
+        self.function_returns: dict[Symbol, ReturnType] = {} # 関数をどう返すか( Move or Copy )
+        self.borrow_map: dict[Symbol, Borrow] = {} # 借りてる
+        self.fn:list[Symbol] = []
+    # SnapShot関連
+    def get_Snapshot(self) -> dict[Symbol, Borrow]:
+        return self.borrow_map.copy()
     
+    def set_SnapShot(self, maps:dict[Symbol, Borrow]) -> None:
+        self.borrow_map = maps.copy()
+        return
+    
+    def add_SnapShot_value(self, symbol:Symbol, deflaut:Borrow = Borrow.UNINIT):
+        self.borrow_map[symbol] = deflaut
+        return
+    
+    def set_SnapShot_value(self, symbol:Symbol, deflaut:Borrow):
+        self.borrow_map[symbol] = deflaut
+        return
+    
+    def get_SnapShot_value(self, symbol:Symbol):
+        return self.borrow_map[symbol]
+    
+    # フレーム
     def new_Frame(self) -> None:
         self.borrow_ledger_stack.append({})
         return
@@ -1198,10 +1177,40 @@ class BorrowingChecker:
                 return frame[symbol]
         return None
     
+    # fn ret
+    def get_fn_ret(self, symbol:Symbol) -> ReturnType | None:
+        if symbol in self.function_returns:
+            return self.function_returns[symbol]
+        return None
+    
+    def new_fn_ret(self, symbol:Symbol, ret:ReturnType) -> None:
+        self.function_returns[symbol] = ret
+        return None
+    
+    # fn
+    def pop_fn(self) -> Symbol:
+        return self.fn.pop()
+
+    def push_fn(self, fn:Symbol) -> None:
+        self.fn.append(fn)
+        return
+
+    def get_fn(self) -> Symbol:
+        return self.fn[-1]
+    
+    # borrower
     def get_borrower(self, symbol:Symbol) -> set[Symbol] | None:
         if not symbol in self.lender_map:
             return None
         return self.lender_map[symbol]
+    
+    def add_borrower(self, symbol:Symbol) -> None:
+        self.lender_map[symbol] = set()
+        return
+    
+    def set_borrower_Value(self, symbol:Symbol, values:set[Symbol]) -> None:
+        self.lender_map[symbol] = values
+        return
     
     def _util_CallError(self, message: str, line: int, column: int, name: str, len: int) -> AnalysisError:
         raise AnalysisError(message, line, column, self.source, name, len)
@@ -1252,21 +1261,178 @@ class ImportNode(Stmt):
                 return self._visit_Import(node)
             case _:
                 raise self._util_CallError(f"不明なnode '{node}'", node.line, node.column, "", node.len)
+            
+    def _visit_ReturnStmt(self, node:ReturnStmtNode):
+        res = self._visit_expr(node.value)
+        fn = self.get_fn()
+        if res == None:
+            self.new_fn_ret(fn, ReturnType.ELSE)
+            return
+        self._util_CallWarn(f"{res.borrow}だよ！", node.line, node.column, "", node.len)
+        if res.borrow == Borrow.MOVED:
+            # OK
+            self.new_fn_ret(fn, ReturnType.MOVE)
+            return
+        if res.borrow == Borrow.UNINIT:
+            raise self._util_CallError(f"非アクティブ値'{res.from_.name}'は使用できません", node.line, node.column, "", node.len)
+        if res.borrow == Borrow.POTENTIAL:
+            # アクティブ値（使用できる変数）
+            raise self._util_CallError(f"潜在的アクティブ値'{res.from_.name}'は使用できません", node.line, node.column, "", node.len)
+        self.new_fn_ret(fn, ReturnType.ELSE)
+        return
+    
+    def _visit_FunctionDef(self, node:FunctionDefNode):
+        if node.symbol is None:
+            raise self._util_CallError(f"Symbolがない", node.line, node.column, "", node.len)
+
+        self.add_SnapShot_value(node.symbol, Borrow.ACTIVE)
+        self.push_fn(node.symbol)
+        for param in node.params:
+            sym = param.name.symbol
+            if sym is None:
+                continue
+            self.set_SnapShot_value(sym, Borrow.ACTIVE)
+        before = self.get_Snapshot()
+        
+        self._visit_Stmt(node.body)
+
+        self.set_SnapShot(before)
+        self.pop_fn()
+        return
+    
+    def _visit_Import(self, node:ImportNode):
+        return
+
+    def _visit_ForStmt(self, node:ForNode):
+        self._visit_expr(node.iterable)
+        self.new_Frame()
+        if node.iterator.symbol is None:raise
+        self.add_SnapShot_value(node.iterator.symbol, Borrow.ACTIVE)
+
+        before = self.get_Snapshot()
+
+        self._visit_Stmt(node.body)
+        s1 = self.get_Snapshot()
+
+        res = self.SnapShot_Marge(s1, before, node.line, node.column, node.len)
+        self.set_SnapShot(res)
+        self.pop_Frame()
+        return
+    
+    def _visit_WhileStmt(self, node:WhileStmtNode):
+        self._visit_expr(node.condition)
+        self.new_Frame()
+
+        before = self.get_Snapshot()
+
+        self._visit_Stmt(node.body)
+        s1 = self.get_Snapshot()
+
+        res = self.SnapShot_Marge(s1, before, node.line, node.column, node.len)
+        self.set_SnapShot(res)
+        self.pop_Frame()
+        return
+    
+    def _visit_IfStmt(self, node:IfStmtNode):
+        self._visit_expr(node.condition)
+        self.new_Frame()
+        before = self.get_Snapshot()
+        self._visit_Stmt(node.then_block)
+        s1 = self.get_Snapshot()
+        if node.else_block is not None:
+            self.set_SnapShot(before)
+            self._visit_Stmt(node.else_block)
+            s2 = self.get_Snapshot()
+            after = self.SnapShot_Marge(s1, s2, node.line, node.column, node.len)
+        else:
+            after = self.SnapShot_Marge(s1, before, node.line, node.column, node.len)
+        self.set_SnapShot(after)
+        self.pop_Frame()
+        return
+    
+    def SnapShot_Marge(self, s1:dict[Symbol, Borrow], s2:dict[Symbol, Borrow], line:int, col:int, len:int) -> dict[Symbol, Borrow]:
+        res:dict[Symbol, Borrow] = s1.copy()
+        for k,v in s2.items():
+            if k in res:
+                if res[k] == v:
+                    continue
+                # UNITとACTIVEのみ許容し、違ってもUNITに
+                if (res[k] in (Borrow.UNINIT, Borrow.ACTIVE)) and (v in (Borrow.UNINIT, Borrow.ACTIVE)):
+                    res[k] = Borrow.UNINIT
+                    continue
+                raise self._util_CallError(f"状態が合致しません。{res[k]}と{v}。全く異なる形態でマージはできません", line, col, "", len)
+            res[k] = v
+        return res
+    
+    def _visit_Block(self, node:BlockNode):
+        self.new_Frame()
+        for stmt in node.blocks:
+            self._visit_Stmt(stmt)
+        self.pop_Frame()
+        return
+    
+    def _visit_ExprStmt(self, node:ExprStmtNode):
+        self._visit_expr(node.expr)
+        return
 
     def _visit_Declaration(self, node:DeclarationNode):
         # 終わってる
+        if node.left.symbol is None:
+            raise self._util_CallError(f"Symbolがない", node.line, node.column, "", node.len)
+        rab = self._visit_expr(node.right)
+        if node.vartype in (VariableType.VAL, VariableType.CONST,):
+            if node.right is None:
+                raise self._util_CallError("宣言文での右辺が不明です。", node.line, node.column, "", node.len)
+            self.add_SnapShot_value(node.left.symbol, Borrow.ACTIVE)
+
+        if node.vartype == VariableType.BORROW:
+            if node.right is None:
+                raise self._util_CallError("宣言文での右辺が不明です。", node.line, node.column, "", node.len)
+            if rab is None:
+                self.add_SnapShot_value(node.left.symbol, Borrow.BORROW)
+                return 
+            if rab.borrow == Borrow.UNINIT:
+                raise self._util_CallError(f"不明な変数'{rab.from_.name}'。初期化がされていません。", node.line, node.column, "", node.len)
+            if rab.borrow != Borrow.BORROW:
+                raise self._util_CallError(f"不明な借用形態'{rab.borrow}。", node.line, node.column, "", node.len)
+            # lender_mapに借りられている側を追加
+            if rab.from_ not in self.lender_map:
+                self.lender_map[rab.from_] = set()
+            self.lender_map[rab.from_].add(node.left.symbol)
+            # borrow_ledger_stackに追加
+            frame = self.get_Frame()
+            if frame is not None:
+                frame[node.left.symbol] = rab.from_
+            # 完成
+            self.add_SnapShot_value(node.left.symbol, Borrow.BORROW)
+            return
+        if rab is None:
+            self.add_SnapShot_value(node.left.symbol, Borrow.ACTIVE)
+            return
+        if node.right is None:
+            self.add_SnapShot_value(node.left.symbol, Borrow.UNINIT)
+            return
+        if rab.borrow == Borrow.BORROW:
+            raise self._util_CallError(f"不明なBORROW借用。不必要であり認められません。", node.line, node.column, "", node.len)
+        if rab.borrow == Borrow.UNINIT:
+            raise self._util_CallError(f"不明な変数'{rab.from_.name}'。初期化がされていません。", node.line, node.column, "", node.len)
+        self.add_SnapShot_value(node.left.symbol, Borrow.ACTIVE)
         return
-    def _visit_expr(self, node:Expr) -> AnalysisBorrow | None:
+    
+
+    def _visit_expr(self, node:Expr | None) -> AnalysisBorrow | None:
+        if node is None:
+            return None
         match (node):
             case VariableNode():
                 if node.symbol is None:
                     raise self._util_CallError("symbolデータが未定義です", node.line, node.column, "", node.len)
                 # MOVEDなら死
-                if node.symbol.borrow_state == Borrow.MOVED:
+                if self.borrow_map[node.symbol] == Borrow.MOVED:
                     raise self._util_CallError(f"変数'{node.name}'は移動されています。", node.line, node.column, "", node.len)
-                if node.symbol.borrow_state == Borrow.NONE:
+                if self.borrow_map[node.symbol] == Borrow.NONE:
                     raise self._util_CallError(f"変数'{node.name}'は不明な状態です。使用はできません", node.line, node.column, "", node.len)
-                return AnalysisBorrow(node.symbol.borrow_state, node.symbol)
+                return AnalysisBorrow(self.borrow_map[node.symbol], node.symbol)
             case AssignNode():
                 # 禿げろ
                 lab = self._visit_expr_can_change(node.left)
@@ -1274,6 +1440,9 @@ class ImportNode(Stmt):
                     raise self._util_CallError(f"一時的に破棄され、使用されない値は代入ができません。", node.line, node.column, "", node.len)
                 rab = self._visit_expr(node.right)
                 lb = lab.borrow
+                if isinstance(lab.from_.node, DeclarationNode):
+                    if lab.from_.node.vartype in (VariableType.CONST, VariableType.VAL):
+                        raise self._util_CallError(f"変数'{lab.from_.name}'は変更不可能です。", node.line, node.column, "", node.len)
                 if lb == Borrow.BORROW:
                     res = self.get_borrow(lab.from_)
                     if res is None:
@@ -1282,12 +1451,13 @@ class ImportNode(Stmt):
                 if lb == Borrow.BORROWED:
                     borrower = self.get_borrower(lab.from_)
                     if borrower is None:
-                        raise
+                        raise self._util_CallError(f"エラー！ふめいな変数", node.line, node.column, "", node.len)
                     raise self._util_CallError(f"変数'{lab.from_.name}'は変数'{"', '".join([i.name for i in borrower])}'に型:{lab.from_.Type_analysis}のオブジェクトを借りられています。", node.line, node.column, "", node.len)
                 if not rab is None:
                     rb = rab.borrow
                     if rb == Borrow.UNINIT:
                         raise self._util_CallError(f"変数'{rab.from_.name}'は内容が入らない可能性があるため代入は不可能です。", node.line, node.column, "", node.len)
+                self.set_SnapShot_value(lab.from_, Borrow.ACTIVE)
                 return AnalysisBorrow(Borrow.ACTIVE, lab.from_)
             case BinaryOpNode():
                 lab = self._visit_expr(node.left)
@@ -1301,7 +1471,7 @@ class ImportNode(Stmt):
                 ref = self._visit_expr(node.right)
                 if ref is None:
                     raise self._util_CallError(f"一時的に破棄され、使用されない値にはリファレンスを実行できません", node.line, node.column, "", node.len)
-                return AnalysisBorrow(Borrow.ACTIVE, ref.from_)
+                return AnalysisBorrow(Borrow.POTENTIAL, ref.from_)
             case DereferenceNode():
                 ref = self._visit_expr(node.right)
                 if ref is None:
@@ -1309,12 +1479,17 @@ class ImportNode(Stmt):
                 refb = ref.borrow
                 if refb == Borrow.UNINIT:
                     raise self._util_CallError(f"内部が不明な変数'{ref.from_.name}'。", node.line, node.column, "", node.len)
-                return AnalysisBorrow(Borrow.ACTIVE, ref.from_)
+                return AnalysisBorrow(Borrow.POTENTIAL, ref.from_)
             case CallExprNode():
                 for arg in node.args:
                     self._visit_expr(arg)
-                self._visit_expr_can_change(node.func_name)
+                func = self._visit_expr_can_change(node.func_name)
+                if func is None:
+                    raise self._util_CallError(f"一時値は関数に使用できません", node.line, node.column, "", node.len)
+                if self.get_fn_ret(func.from_) == ReturnType.MOVE:
+                    return AnalysisBorrow(Borrow.ACTIVE, func.from_) # AnalysisBorrow(借用状態, それの由来のSymbol)
                 return None
+            # return move a; -> std:move
             case Literal():
                 return None
             case MemberAccessNode():
@@ -1340,7 +1515,7 @@ class ImportNode(Stmt):
                     raise self._util_CallError(f"変数'{rab.from_.name}' 借用は移動できません", node.line, node.column, "", node.len)
                 if rab.borrow == Borrow.UNINIT:
                     raise self._util_CallError(f"変数'{rab.from_.name}'は未定義の可能性があります。", node.line, node.column, "", node.len)
-                rab.from_.borrow_state = Borrow.MOVED
+                self.borrow_map[rab.from_] = Borrow.MOVED
                 return AnalysisBorrow(Borrow.ACTIVE, rab.from_)
 
             case BorrowOpNode():
@@ -1352,7 +1527,8 @@ class ImportNode(Stmt):
                     raise self._util_CallError(f"変数'{rab.from_.name}'は二重借用状態にあります。", node.line, node.column, "", node.len)
                 if rab.borrow == Borrow.UNINIT:
                     raise self._util_CallError(f"変数'{rab.from_.name}'は未定義の可能性があります。", node.line, node.column, "", node.len)
-                rab.from_.borrow_state = Borrow.BORROW
+                self.borrow_map[rab.from_] = Borrow.BORROWED
+                # lender_mapに借りられている側を追加（借り手は不明なので、宣言時などに追加）
                 return AnalysisBorrow(Borrow.BORROW, rab.from_)
             case _:
                 raise self._util_CallError("なんですか、、、", node.line, node.column, "", node.len)
