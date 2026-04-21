@@ -50,9 +50,9 @@ class TokenType(Enum):
 
 
     # 型
-    tNUM = "Num"
-    tDEC = "Dec"
-    tSTR = "Str"
+    tNUMBER = "Number"
+    tDECIMAL = "Decimal"
+    tSTRING = "String"
     tANY = "Any"
     tLIST = "List"
     tARRAY = "Array"
@@ -69,7 +69,6 @@ class TokenType(Enum):
     tANYFLOAT = "@float@"
 
     # 借用・所有権型
-    tBORROW = "&borrow"
 
     # MEM
     tINT8 = "int8"
@@ -200,17 +199,17 @@ _t_float = (
 
 _t_number = (
     TokenType.tANYNUMBER,
-    TokenType.tNUM,
+    TokenType.tNUMBER,
     *_t_int
 )
 
 _t_decimal = (
-    TokenType.tDEC,
+    TokenType.tDECIMAL,
     *_t_float
 )
 
 _t_string = (
-    TokenType.tSTR
+    TokenType.tSTRING
 )
 
 _t_list = (

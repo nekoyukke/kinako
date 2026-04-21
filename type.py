@@ -130,10 +130,6 @@ class TypeFunction(TypeObject):
     params:list[TypeObject]
     retype:TypeObject
 
-@dataclass
-class TypeBorrow(TypeObject):
-    Generic:TypeObject
-
 # ユーザ型
 @dataclass
 class UserType(TypeObject):
@@ -172,5 +168,9 @@ Generic = (
     TypeList,
     TypeArray,
     TypePtr,
-    TypeBorrow
+)
+
+EazyContainer = (
+    TypeList,
+    TypeArray,
 )

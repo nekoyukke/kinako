@@ -4,8 +4,46 @@ from typing import List, Optional, Any
 from tokens import Token
 from enum import Enum
 from type import TypeObject
+from utils import Err
 
-class Borrow(Enum):
+@dataclass
+class BorrowState():
+    fb: tBorrow # 最初のtBorrow
+    vt: VariableType # 変数の束縛タイプ
+
+
+    def set_op(self) -> None | Err:
+        op = self.get_op()
+        if isinstance(op, Err):
+            return op
+        self.do_op = op
+        return
+    
+class LastBorrow(Enum):
+    NONE = 0 # 無効
+    MOVED = 1 # 移動済み
+    UNINIT = 2 # 初期化なし
+    ACTIVE = 3 # 有効
+    BORROWED = 4 # 借りられている
+    BORROW = 5 # 借りている
+    POTENTHAL_ACTIV = 100 # 潜在的アクティブ値
+    NEED_BORROW = 101 # 借用していた。borrow a
+    NEED_MOVE = 102 # 移動していた。move b
+    GROUP_NEED_BORROW = 103 # グループ値。上位の者をロックする borrow a[1]
+    GROUP_NEED_MOVE = 104 # グループ値。上位の者をロックする
+    GROUP = 105 # グループ値。上位の者をロックするべきな状態にする。もしGROUPならそのままACTIVで返させる。
+    GROUP_POTENTHAL_ACTIV = 106 # グループ値の潜在的アクティブ値
+
+
+class BorrowOp(Enum):
+    REF = 0 # &
+    DREF = 1 # *
+    IDX = 2 # []
+    MOVE = 3 # move
+    BORROW = 4 # borrow
+
+
+class tBorrow(Enum):
     NONE = 0 # 無効
     MOVED = 1 # 移動済み
     UNINIT = 2 # 初期化なし
@@ -15,8 +53,57 @@ class Borrow(Enum):
 
 @dataclass
 class AnalysisBorrow():
-    borrow:Borrow
+    borrow:BorrowState
     from_:Symbol
+    tb: tBorrow # 今のtBorrow
+    ots: list[BorrowOp] # 受けた操作
+
+    do_op: LastBorrow # 最後のLastBorrow
+
+    def add_ots(self, bo: BorrowOp):
+        ot = self.ots[-1]
+        if ot == BorrowOp.REF and bo == BorrowOp.DREF:
+            self.ots.pop()
+            return
+        self.ots.append(bo)
+        return
+    
+    def get_op(self) -> LastBorrow | Err:
+        now = LastBorrow(self.fb.value)
+        for ot in self.ots:
+            match (ot):
+                case BorrowOp.REF:
+                    now = LastBorrow.POTENTHAL_ACTIV
+                case BorrowOp.DREF: # *
+                    # ACTIV, GROUP,以外なら死
+                    # GROUP => *a[1],,,a-> ptr<ptr<int>>
+                    if not now in (LastBorrow.ACTIVE, LastBorrow.GROUP):
+                        return Err(1)
+                    now = LastBorrow.ACTIVE
+                case BorrowOp.IDX: # mut List<int> a = 1..200; move a[0]; borrow a[0];
+                    if now == LastBorrow.POTENTHAL_ACTIV:
+                        now = LastBorrow.POTENTHAL_ACTIV
+                        continue
+                    if now == LastBorrow.NEED_BORROW:
+                        return Err(1)
+                    if now == LastBorrow.NEED_MOVE:
+                        return Err(1)
+                    now = LastBorrow.GROUP
+                case BorrowOp.MOVE:
+                    if not now in (LastBorrow.ACTIVE, LastBorrow.BORROWED, LastBorrow.GROUP):
+                        return Err(1)
+                    if now == LastBorrow.GROUP:
+                        now = LastBorrow.GROUP_NEED_MOVE
+                        continue
+                    now = LastBorrow.NEED_MOVE
+                case BorrowOp.BORROW:
+                    if not now in (LastBorrow.ACTIVE, LastBorrow.BORROWED, LastBorrow.GROUP):
+                        return Err(1)
+                    if now == LastBorrow.GROUP:
+                        now = LastBorrow.GROUP_NEED_BORROW
+                        continue
+                    now = LastBorrow.NEED_BORROW
+        return now
 
 # 解析用
 @dataclass
@@ -28,12 +115,19 @@ class Symbol:
     is_extern: bool = False # 外部
     member: list[Symbol] = field(default_factory=list["Symbol"])
     Type_analysis: Optional[TypeObject] = None # 型
-    borrow_state:Borrow = Borrow.NONE
+    deep: int = 0  # スコープ深さ
+    def __hash__(self):
+        return hash(self.fq_name)
+    def __eq__(self, other:Any):
+        return isinstance(other, Symbol) and self.fq_name == other.fq_name
+
+
 
 
 
 @dataclass
 class ASTNode:
+
     def __repr__(self) -> str:
         return self._format_repr(indent=0)
     
@@ -142,16 +236,6 @@ class PointerTypeNode(TypeNode):
     element_type: TypeNode
 
 @dataclass(repr=False)
-class MutTypeNode(TypeNode):
-    # ポインタ
-    element_type: TypeNode
-
-@dataclass(repr=False)
-class BorrowTypeNode(TypeNode):
-    # ポインタ
-    element_type: TypeNode
-
-@dataclass(repr=False)
 class FunctionTypeNode(TypeNode):
     # 関数タイプ
     param_types: List[TypeNode]
@@ -213,6 +297,7 @@ class VariableNode(Literal):
     name: str
     token: Token
     symbol: Optional[Symbol] = None
+    now_deep: int = 0
 
 
 @dataclass(repr=False)
@@ -396,6 +481,8 @@ class ClassDefNode(Stmt):
 @dataclass(repr=False)
 class Program(Stmt):
     blocks: list[Stmt]
+    imports: list['Program']
+    import_stmt: list[ImportNode]
 
 @dataclass(repr=False)
 class ForNode(Stmt):
@@ -408,6 +495,6 @@ class ForNode(Stmt):
 @dataclass(repr=False)
 class ImportNode(Stmt):
     
-    From: Expr
+    From: StringNode
     Import: Token
     symbol: Optional[Symbol] = None
