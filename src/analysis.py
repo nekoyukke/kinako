@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, Dict
+
 from src.myast import *
 from src.utils import AnalysisError, logging
 from src.tokens import *
@@ -8,6 +9,7 @@ from src.myast import *
 from src.parser import *
 from src.tokens import *
 from src.lexer import tokenize
+from src.borrow import *
 
 @dataclass
 class Scope:
@@ -1131,10 +1133,10 @@ class TypeChecker:
             return isinstance(target, (EazyContainer))
         return False
 
-from src.borrow import *
 
 @dataclass
 class BorrowScope:
+    source: str
     map: Dict[Place, StaticBorrow] = field(default_factory=dict[Place, StaticBorrow]) # 内部のシンボルと借り状況
     parent: Optional["BorrowScope"] = None # 親
     def deep(self) -> int:
@@ -1146,14 +1148,50 @@ class BorrowScope:
         return self.parent
     
     def new_scope(self):
-        return BorrowScope({}, self)
+        return BorrowScope(self.source, {}, self)
+    
+    def cloce_scope(self):
+        # 早期リターン
+        if self.parent is None:
+            return self
+        
+        for place, borrow in self.map.items():
+            if borrow.state == BorrowState.BORROWED and not borrow.have is None:
+                self.map[borrow.have].release_borrow()
+        
+        for place, borrow in self.map.items():
+            free = borrow.get_free_borrow()
+            if isinstance(free, Error):
+                node = place.local_id.node
+                raise AnalysisError(f"解放値に借用が入っています。{place.local_id.name},カウント数:{borrow.ref_count}", node.line, node.column, self.source, "", node.len)
+            if free is None:
+                # 正しい
+                continue
+            continue
+        return self.parent
+
+    def add_map(self, place:Place, borrow:StaticBorrow):
+        self.map[place] = borrow
+    
+    def del_map(self, place:Place):
+        if not place in self.map:
+            return
+        self.map.pop(place)
+    
+    def get_map(self, place:Place) -> StaticBorrow | None:
+        if self.parent is None:
+            return None
+        if not place in self.map:
+            return self.parent.get_map(place)
+        return self.map[place]
+
     
 # 借用チェック
 class BorrowingChecker:
     def __init__(self, node:Program, source:str) -> None:
         self.node = node
         self.source = source
-        self._Scope = BorrowScope()
+        self._Scope = BorrowScope(source)
 
     def _util_CallError(self, message: str, node:Stmt|Expr) -> AnalysisError:
         raise AnalysisError(message, node.line, node.column, self.source, "", node.len)
@@ -1247,8 +1285,10 @@ class ImportNode(Stmt):
         match(node):
             case BinaryOpNode():
                 return self._visit_expr_binary(node)
+            case VariableNode():
+                return self._visit_expr_Variable(node)
             case Literal():
-                return self._visit_expr_literal(node)
+                return None
             case UnaryOpNode():
                 return self._visit_expr_Unary(node)
             case AssignNode():
@@ -1273,6 +1313,9 @@ class ImportNode(Stmt):
                 raise
 
 
+    def _visit_expr_Variable(self, node:VariableNode) -> ResultBorrow:
+        pass
+
     def _visit_expr_binary(self, node:BinaryOpNode) -> ResultBorrow | None:
         self._visit_expr(node.right)
         self._visit_expr(node.left)
@@ -1295,16 +1338,38 @@ class ImportNode(Stmt):
         pass
 
     def _visit_expr_Index(self, node:IndexAccessNode) -> ResultBorrow | None:
-        pass
+        borrow = self._visit_expr(node)
+        borrow = self._util_None_kill_b(borrow, node)
+        borrow.have.projection.append(Projection(ProjectionKind.INDEX, None))
+        return borrow
 
     def _visit_expr_AsCast(self, node:AsCastNode) -> ResultBorrow | None:
-        pass
+        self._visit_expr(node)
+        return None
 
     def _visit_expr_MoveOp(self, node:MoveOpNode) -> ResultBorrow | None:
-        pass
+        borrow = self._visit_expr(node)
+        borrow = self._util_None_kill_b(borrow, node)
+        sb = self._Scope.get_map(borrow.have)
+        if sb is None:
+            raise
+        if sb.state in (BorrowState.BORROW, BorrowState.MOVED):
+            raise self._util_CallError("moveは所有権が完全では無ければなりません。", node)
+        sb.state = BorrowState.MOVED
+        return ResultBorrow(ResultState.OWNED, borrow.have, BorrowState.MOVED)
 
     def _visit_expr_BorrowOp(self, node:BorrowOpNode) -> ResultBorrow | None:
-        pass
+        borrow = self._visit_expr(node)
+        borrow = self._util_None_kill_b(borrow, node)
+        sb = self._Scope.get_map(borrow.have)
+        if sb is None:
+            raise
+        if sb.vt != VariableType.MUT:
+            raise self._util_CallError("borrowはmutのみが許されます", node)
+        if sb.state in (BorrowState.BORROW, BorrowState.MOVED):
+            raise self._util_CallError("borrowは所有権が完全では無ければなりません。", node)
+        sb.add_borrow()
+        return ResultBorrow(ResultState.BORROWED, borrow.have, BorrowState.BORROW)
 
     def _visit_expr_Reference(self, node:ReferenceNode) -> ResultBorrow | None:
         pass

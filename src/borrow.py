@@ -1,7 +1,8 @@
-from src.myast import *
 from dataclasses import dataclass
 from enum import Enum
 
+from src.myast import *
+from src.utils import Error
 
 # 変数の状態
 class BorrowState(Enum):
@@ -30,16 +31,18 @@ class ProjectionKind(Enum):
     DEREF = 1 # 参照外し (*ptr)
     INDEX = 2 # 配列のインデックス ([i])
 
-@dataclass
+@dataclass(frozen=True)
 class Projection:
     kind: ProjectionKind
     place: "Symbol | int | Place | None"
 
-@dataclass
+@dataclass(frozen=True)
 class Place:
     local_id: Symbol
-    projection: list[Projection] | None # どのフィールドか
-    def is_prefix(self, base_proj: list[Projection] | None, target_proj: list[Projection] | None) -> bool:
+    projection: list[Projection] # どのフィールドか
+    
+    @classmethod
+    def is_prefix(cls, base_proj: list[Projection], target_proj: list[Projection]) -> bool:
         # 短い方のリストの長さ分だけ、中身が完全に一致するか
         base = base_proj or []
         target = target_proj or []
@@ -90,13 +93,20 @@ class StaticBorrow():
             self.ref_count = 0
             self.state = self.get_default_Borrow()
 
+    # freeしたときのplace
+    def get_free_borrow(self) -> Place | Error | None:
+        if self.ref_count != 0:
+            return Error()
+        return self.have
+
 # Exprの結果の状態
 class ResultState(Enum):
     OWNED = 1 # 俺の
     BORROWED = 2 # 誰かの
 
 # Exprの結果
+@dataclass
 class ResultBorrow():
     result: ResultState
-    have: Place | None
+    have: Place
     state: BorrowState
