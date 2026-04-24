@@ -40,6 +40,10 @@ class Projection:
 class Place:
     local_id: Symbol
     projection: list[Projection] # どのフィールドか
+
+    @classmethod
+    def make(cls, sym:Symbol):
+        return Place(sym, [])
     
     @classmethod
     def is_prefix(cls, base_proj: list[Projection], target_proj: list[Projection]) -> bool:

@@ -368,9 +368,11 @@ class ScopeChecker:
                 self._visit_expr(node.left)
                 if not isinstance(node.left, MemberAccessNode | VariableNode):
                     # 型に対する侮辱
-                    return
+                    self._util_CallError("左辺が不明です.", node.line, node.column, "", node.len)
+                    raise
                 if node.left.symbol is None:
                     raise
+                node.symbol = node.right.symbol
                 return
             case IndexAccessNode():
                 self._visit_expr(node.addr)
@@ -1314,7 +1316,8 @@ class ImportNode(Stmt):
 
 
     def _visit_expr_Variable(self, node:VariableNode) -> ResultBorrow:
-        pass
+        sym = self._util_None_kill(node.symbol, node)
+        self._Scope.get_map(Place.make(sym))
 
     def _visit_expr_binary(self, node:BinaryOpNode) -> ResultBorrow | None:
         self._visit_expr(node.right)
@@ -1329,13 +1332,21 @@ class ImportNode(Stmt):
         return None
 
     def _visit_expr_assign(self, node:AssignNode) -> ResultBorrow | None:
-        pass
+        left = self._visit_expr(node.left)
+        if left.state in (BorrowState.BORROW, BorrowState.BORROWED, BorrowState.MOVED, ):
+            raise self._util_CallError("")
+        return self._visit_expr(node.right)
 
     def _visit_expr_CallExpr(self, node:CallExprNode) -> ResultBorrow | None:
         pass
 
     def _visit_expr_Member(self, node:MemberAccessNode) -> ResultBorrow | None:
-        pass
+        borrow = self._visit_expr(node)
+        borrow = self._util_None_kill_b(borrow, node)
+        symbol = node.right.symbol
+        symbol = self._util_None_kill(symbol, node)
+        borrow.have.projection.append(Projection(ProjectionKind.FIELD, symbol))
+        return borrow
 
     def _visit_expr_Index(self, node:IndexAccessNode) -> ResultBorrow | None:
         borrow = self._visit_expr(node)
