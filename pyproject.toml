@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kinako"
+version = "0.1.0"
+dependencies = [] # 必要なライブラリがあれば書く（例: "llvmlite"）
+
+[project.scripts]
+kinako = "kinako.main:main" # ここが魔法の一行！

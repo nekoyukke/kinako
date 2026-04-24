@@ -1,13 +1,13 @@
 from dataclasses import dataclass, field
 from typing import Optional, Dict
-from myast import *
-from utils import AnalysisError, logging
-from tokens import *
-from type import *
-from myast import *
-from parser import *
-from tokens import *
-from lexer import tokenize
+from src.myast import *
+from src.utils import AnalysisError, logging
+from src.tokens import *
+from src.type import *
+from src.myast import *
+from src.parser import *
+from src.tokens import *
+from src.lexer import tokenize
 
 @dataclass
 class Scope:
@@ -1131,13 +1131,11 @@ class TypeChecker:
             return isinstance(target, (EazyContainer))
         return False
 
-from borrow import *
+from src.borrow import *
 
 @dataclass
 class BorrowScope:
-    symbol_map: Dict[Place, StaticBorrow] = field(default_factory=dict[Place, StaticBorrow]) # 内部のシンボルと借り状況
-    borrow_map: Dict[Place, set[Place]] = field(default_factory=dict[Place, set[Place]]) # 借りられている先
-    borrowPair: Dict[Place, Place] = field(default_factory=dict[Place, Place]) # 借りている先
+    map: Dict[Place, StaticBorrow] = field(default_factory=dict[Place, StaticBorrow]) # 内部のシンボルと借り状況
     parent: Optional["BorrowScope"] = None # 親
     def deep(self) -> int:
         if self.parent is None:
@@ -1148,89 +1146,8 @@ class BorrowScope:
         return self.parent
     
     def new_scope(self):
-        return BorrowScope({}, {}, {}, self)
+        return BorrowScope({}, self)
     
-    def close_scope(self):
-        for sym in self.symbol_map:
-            if sym in self.borrowPair:
-                target = self.borrowPair[sym]
-                self.release_borrow_recursive(target, sym)
-        return
-    
-    def get_symbol(self, sym:Place) -> StaticBorrow | None:
-        if sym in self.symbol_map:
-            return self.symbol_map[sym]
-        parent = self.get_parent()
-        if parent is None:
-            return None
-        return parent.get_symbol(sym)
-    
-    def get_borrow(self, sym:Place) -> set[Place] | None:
-        if sym in self.borrow_map:
-            return self.borrow_map[sym]
-        parent = self.get_parent()
-        if parent is None:
-            return None
-        return parent.get_borrow(sym)
-    
-    def get_borrow_pair(self, sym:Place) -> Place | None:
-        if sym in self.borrowPair:
-            return self.borrowPair[sym]
-        parent = self.get_parent()
-        if parent is None:
-            return None
-        return parent.get_borrow_pair(sym)
-    
-    # targetからsymを引く処理
-    # 理想の構成: targetからsymは借用をしている
-    def release_borrow_recursive(self, target:Place, sym:Place) -> bool:
-        if sym in self.symbol_map and sym in self.borrowPair and target in self.borrow_map:
-            # targetを持ってきてからsymを引き、symを削除する
-            # symbol
-            self.symbol_map.pop(sym)
-            # pair
-            self.borrowPair.pop(sym)
-            # set
-            self.borrow_map[target].discard(sym)
-            return True
-        # いつもの
-        parent = self.get_parent()
-        if parent is None:
-            return False
-        return parent.release_borrow_recursive(target, sym)
-    
-
-    # borrowの設定
-    def set_borrow(self, sym:Place, value:StaticBorrow):
-        self.symbol_map[sym] = value
-
-    # symをBorrowしたとき（borrow sym）
-    def borrow_symbol(self, sym:Place):
-        borrow = self.get_symbol(sym)
-        if borrow is None:
-            self.set_borrow(sym, StaticBorrow(BorrowState.BORROWED))
-        else:
-            borrow.state = BorrowState.BORROWED
-            self.set_borrow(sym, borrow)
-        return # 終了
-    
-    # targetからsymを取得
-    def set_symbol(self, sym:Place, target:Place):
-        self.borrow_map[target].add(sym)
-        self.borrowPair[sym] = target
-        return
-    # チェックさん
-    def check_symbol(self):
-        for k, v in self.symbol_map.items():
-            if v.state == BorrowState.BORROWED:
-                # チェック
-                borrow = self.get_borrow(k)
-                pair = self.get_borrow_pair(k)
-                if borrow is None or pair is None:
-                    v.state = BorrowState.ACTIV
-        return
-    
-
 # 借用チェック
 class BorrowingChecker:
     def __init__(self, node:Program, source:str) -> None:
@@ -1397,5 +1314,5 @@ class ImportNode(Stmt):
 
 if __name__ == "__main__":
     t = BinaryOpNode(0,0,0,NumberNode(0,0,0,42,Token(TokenType.NUMBER, 42),10),Token(TokenType.DOUBLEDOT, "+"), NumberNode(0,0,0,42,Token(TokenType.NUMBER, 42),10))
-    tc = TypeChecker(Program(0,0,0,[]),"")
-    print(tc._visit_expr_binary(t))
+    tc = TypeChecker(Program(0,0,0,[], [], []),"")
+    print(tc._visit_expr_binary(t)) # type: ignore

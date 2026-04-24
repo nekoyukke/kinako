@@ -1,8 +1,0 @@
-import "std/io.knk";
-
-fn int main() {
-    mut int a = 1;
-    {borrow int b = borrow a;}
-    a = a;
-    return 0;
-}

@@ -1,0 +1,2 @@
+[console_scripts]
+kinako = kinako.main:main

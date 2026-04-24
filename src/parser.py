@@ -1,7 +1,7 @@
 from __future__ import annotations
-from tokens import Token, TokenType 
-from myast import *
-import utils
+from src.tokens import Token, TokenType 
+from src.myast import *
+import src.utils as utils
 from typing import Callable
 
 def ast(Tokens:list[Token], source: str):

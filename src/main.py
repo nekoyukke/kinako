@@ -1,11 +1,11 @@
-from lexer import tokenize
-from tokens import Token
-from myast import *
-from parser import *
-from analysis import *
+from src.lexer import tokenize
+from src.tokens import Token
+from src.myast import *
+from src.parser import *
+from src.analysis import *
 
 import logging
-import utils  # type: ignore
+import src.utils as utils  # type: ignore
 # from interpreter import evaluate
 # from environment import Environment
 
