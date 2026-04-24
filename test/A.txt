@@ -1,0 +1,57 @@
+int sum_to_n(int n) {
+    int sum = 0;
+    for (int i = 0; i < n; i++) {
+        sum += i;
+    }
+    return sum;
+}
+
+define i32 @sum_to_n(i32 %n) {
+entry:
+  br label %loop
+ 
+loop:
+  ; φ命令で初期値または前回ループからの値を選択
+  %i = phi i32 [0, %entry], [%next_i, %loop]
+  %sum = phi i32 [0, %entry], [%next_sum, %loop]
+ 
+  ; ループ本体
+  %next_sum = add i32 %sum, %i
+  %next_i = add i32 %i, 1
+ 
+  ; 継続条件
+  %cond = icmp slt i32 %next_i, %n
+  br i1 %cond, label %loop, label %exit
+ 
+exit:
+  ret i32 %next_sum
+}
+
+
+int add(int a, int b) {
+    return a + b;
+}
+int main() {
+    int result = add(2, 3);
+    return result;
+}
+
+
+
+; add関数の定義
+define i32 @add(i32 %a, i32 %b) {
+entry:
+  %sum = add i32 %a, %b
+  ret i32 %sum
+}
+ 
+; main関数
+define i32 @main() {
+entry:
+  %call = call i32 @add(i32 2, i32 3)
+  ret i32 %call
+}
+
+
+
+
