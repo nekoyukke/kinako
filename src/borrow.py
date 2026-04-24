@@ -30,12 +30,12 @@ class ProjectionKind(Enum):
     DEREF = 1 # 参照外し (*ptr)
     INDEX = 2 # 配列のインデックス ([i])
 
-@dataclass(frozen=True)
+@dataclass
 class Projection:
     kind: ProjectionKind
     place: "Symbol | int | Place | None"
 
-@dataclass(frozen=True)
+@dataclass
 class Place:
     local_id: Symbol
     projection: list[Projection] | None # どのフィールドか
@@ -56,11 +56,39 @@ class Place:
         # どちらかがどちらかの Prefix であれば、それは「同じメモリの道の上」にいる
         return self.is_prefix(self.projection, p2.projection) or self.is_prefix(p2.projection, self.projection)
 
+
 # 変数自体に紐づけるやつ
 # 参照はBorrwingCheckerに集約
 @dataclass
 class StaticBorrow():
     state: BorrowState
+    vt: VariableType
+    have: Place | None
+    # 貸し出し数
+    ref_count: int = 0
+
+    def get_default_Borrow(self):
+        match (self.vt):
+            case VariableType.CONST :
+                return BorrowState.ACTIV
+            case VariableType.VAL:
+                return BorrowState.ACTIV
+            case VariableType.LET:
+                return BorrowState.ACTIV
+            case VariableType.MUT:
+                return BorrowState.ACTIV
+            case VariableType.BORROW:
+                return BorrowState.BORROW
+    
+    def add_borrow(self):
+        self.ref_count += 1
+        self.state = BorrowState.BORROWED
+
+    def release_borrow(self):
+        self.ref_count -= 1
+        if self.ref_count <= 0:
+            self.ref_count = 0
+            self.state = self.get_default_Borrow()
 
 # Exprの結果の状態
 class ResultState(Enum):
