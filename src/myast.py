@@ -1,9 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass, field, fields
 from typing import List, Optional, Any
-from tokens import Token
+from src.tokens import Token
 from enum import Enum
-from type import TypeObject
+from src.type import TypeObject
 
 # 解析用
 @dataclass

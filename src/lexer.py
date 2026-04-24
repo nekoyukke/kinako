@@ -1,6 +1,6 @@
 import re
-from tokens import Token, TokenType
-import utils  # type: ignore
+from src.tokens import Token, TokenType
+import src.utils as utils  # type: ignore
 
 def tokenize(source: str) -> list[Token]:
     """

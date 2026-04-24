@@ -3,8 +3,8 @@ from ctypes import CFUNCTYPE, c_int
 
 from llvmlite import binding as llvm
 from llvmlite import ir
-from myast import *
-import tokens
+from src.myast import *
+import src.tokens as tokens
 
 class llvm_codegen:
     

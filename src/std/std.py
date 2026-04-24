@@ -1,7 +1,7 @@
-from myast import *
-from tokens import *
-from std.stdclass import *
-from type import TypeFunction, TypeString, TypeNone
+from src.myast import *
+from src.tokens import *
+from src.std.stdclass import *
+from src.type import TypeFunction, TypeString, TypeNone
 
 STD:dict[str, dict[str, dict[str, Symbol]]] = {
     "std": {

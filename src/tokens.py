@@ -1,5 +1,5 @@
 from enum import Enum
-import utils  # type: ignore
+import src.utils as utils  # type: ignore
 
 
 class TokenType(Enum):

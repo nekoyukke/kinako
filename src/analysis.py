@@ -1,13 +1,13 @@
 from dataclasses import dataclass, field
 from typing import Optional, Dict
-from myast import *
-from utils import AnalysisError, logging
-from tokens import *
-from type import *
-from myast import *
-from parser import *
-from tokens import *
-from lexer import tokenize
+from src.myast import *
+from src.utils import AnalysisError, logging
+from src.tokens import *
+from src.type import *
+from src.myast import *
+from src.parser import *
+from src.tokens import *
+from src.lexer import tokenize
 
 @dataclass
 class Scope:
@@ -1131,7 +1131,7 @@ class TypeChecker:
             return isinstance(target, (EazyContainer))
         return False
 
-from borrow import *
+from src.borrow import *
 
 @dataclass
 class BorrowScope:

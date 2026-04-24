@@ -1,6 +1,6 @@
-from myast import *
-from tokens import *
-from type import *
+from src.myast import *
+from src.tokens import *
+from src.type import *
 
 def make_std_class(Type:TypeObject) -> list[Symbol] | None:
     if Type == TypeInt(32, False, True):
