@@ -1146,7 +1146,7 @@ class BorrowScope:
         return self.parent
     
     def new_scope(self):
-        return BorrowScope({}, {}, {}, self)
+        return BorrowScope({}, self)
     
 # 借用チェック
 class BorrowingChecker:
