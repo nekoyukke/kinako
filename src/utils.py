@@ -1,4 +1,5 @@
 import logging
+
 """
 デバッグ便利コード用
 フラグがTrueならINFO以下も表示
@@ -80,3 +81,6 @@ class VMError(Exception):
             f"    {pointer}\n"
             f"VMError VMRuntimeError!: {self.message}"
         )
+    
+class Error():
+    pass
