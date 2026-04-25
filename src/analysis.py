@@ -1317,7 +1317,12 @@ class ImportNode(Stmt):
 
     def _visit_expr_Variable(self, node:VariableNode) -> ResultBorrow:
         sym = self._util_None_kill(node.symbol, node)
-        self._Scope.get_map(Place.make(sym))
+        static = self._Scope.get_map(Place.make(sym))
+        if static is None:
+            raise self._util_CallError(f"不明な変数 '{sym.name}' 不明な値は使用できません。", node)
+        if static.have is None:
+            return ResultBorrow(ResultState.OWNED, Place.make(sym), static.state)
+        return ResultBorrow(ResultState.BORROWED, static.have, static.state)
 
     def _visit_expr_binary(self, node:BinaryOpNode) -> ResultBorrow | None:
         self._visit_expr(node.right)
@@ -1333,8 +1338,9 @@ class ImportNode(Stmt):
 
     def _visit_expr_assign(self, node:AssignNode) -> ResultBorrow | None:
         left = self._visit_expr(node.left)
+        left = self._util_None_kill_b(left, node)
         if left.state in (BorrowState.BORROW, BorrowState.BORROWED, BorrowState.MOVED, ):
-            raise self._util_CallError("")
+            raise self._util_CallError("有効値ではありません！", node)
         return self._visit_expr(node.right)
 
     def _visit_expr_CallExpr(self, node:CallExprNode) -> ResultBorrow | None:
