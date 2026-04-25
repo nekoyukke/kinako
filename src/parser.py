@@ -20,7 +20,7 @@ def ast(Tokens:list[Token], source: str):
             raise utils.ParseError("out of range", Tokens[pos-1].line, Tokens[pos-1].column, source, name, Tokens[pos-1].String)
         return Tokens[pos]
     
-    def ex(tok:TokenType, name:str = "unkwon", message:str = "unkown"):
+    def ex(tok:TokenType, message:str, name:str = "unkwon"):
         nonlocal pos
         cua = cu(name)
         ad()
@@ -78,8 +78,8 @@ def ast(Tokens:list[Token], source: str):
         nonlocal exp
         tok = cu()
         ad()
-        expr_import = ex(TokenType.STR)
-        semi = ex(TokenType.SEMI)
+        expr_import = ex(TokenType.STR, "不明なメッセージ")
+        semi = ex(TokenType.SEMI, "セミコロンがありません。")
         exp.import_stmt += [ImportNode(tok.line, tok.column, semi.column - tok.column + 1, StringNode(expr_import.line, expr_import.column, len(expr_import.String), expr_import.String, expr_import), tok)]
         return ExprStmtNode(tok.line, tok.column, len(tok.String), Expr(tok.line, tok.column, len(tok.String)))
     def Block() -> Stmt:
@@ -150,7 +150,7 @@ def ast(Tokens:list[Token], source: str):
     
     def While() -> Stmt:
         # While <Expr> <Stmt> else <Stmt>
-        whiletok = ex(TokenType.WHILE)
+        whiletok = ex(TokenType.WHILE, "Whileキーワードがありませ。。")
         condition = expr()
         body = stmt()
         return WhileStmtNode(whiletok.line, whiletok.column, len(whiletok.String),condition, body)
@@ -163,7 +163,7 @@ def ast(Tokens:list[Token], source: str):
             retstmt = ReturnStmtNode(ret.line, ret.column, 0, ret)
         else:
             retstmt = ReturnStmtNode(ret.line, ret.column, 0, ret, expr())
-        ex(TokenType.SEMI)
+        ex(TokenType.SEMI, "セミコロンがありません")
         retstmt.len = cu().column - ret.column
         return retstmt
         
@@ -173,8 +173,8 @@ def ast(Tokens:list[Token], source: str):
         fn = cu()
         ad()
         types = typenode()
-        idtok = ex(TokenType.ID)
-        ex(TokenType.LPAREN)
+        idtok = ex(TokenType.ID, "定義には識別子が必要です")
+        ex(TokenType.LPAREN, "かっこ '(' がありません")
         args:list[Params] = []
         if cu().type != TokenType.RPAREN:
             while True:
@@ -186,7 +186,7 @@ def ast(Tokens:list[Token], source: str):
                     ad()
                     continue
                 break
-        rpaern = ex(TokenType.RPAREN)
+        rpaern = ex(TokenType.RPAREN, "かっこ ')' がありません")
         body = stmt()
         return FunctionDefNode(
                 fn.line,
@@ -216,7 +216,7 @@ def ast(Tokens:list[Token], source: str):
         Typetok = cu("Declaration")
         ad()
         type = typenode()
-        lefttok = ex(TokenType.ID)
+        lefttok = ex(TokenType.ID, "宣言には識別子が必要です。")
         left = VariableNode(lefttok.line, lefttok.column, len(lefttok.String),lefttok.String, lefttok)
         right:Optional[Expr] = None
         if cu("Declaration").type == TokenType.ASSIGN:
@@ -303,7 +303,7 @@ def ast(Tokens:list[Token], source: str):
     def Range() -> Expr:
         nod = Coalescing()
         if cu().type == TokenType.DOUBLEDOT:
-            tok = ex(TokenType.DOUBLEDOT)
+            tok = ex(TokenType.DOUBLEDOT, "不明。")
             right = Coalescing()
             if cu().type == TokenType.DOUBLEDOT:
                 raise utils.ParseError("Range cannot be chained", cu().line, cu().column, source, "Range", cu().String)
@@ -412,7 +412,7 @@ def ast(Tokens:list[Token], source: str):
             elif cus.type == TokenType.LBRACKET:
                 ad()
                 index = expr()
-                ex(TokenType.RBRACKET)
+                ex(TokenType.RBRACKET, "']' がありません。")
                 node = IndexAccessNode(cus.line,cus.column, len(cus.String), node, index)
             elif cus.type == TokenType.AS:
                 ad()

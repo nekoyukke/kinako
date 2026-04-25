@@ -1,0 +1,10 @@
+// want safe
+
+fn int add(int a, int b) {
+    return a+b;
+}
+
+fn int main() {
+    add(21,21);
+    return 0;
+}

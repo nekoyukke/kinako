@@ -39,10 +39,14 @@ class Projection:
 @dataclass(frozen=True)
 class Place:
     local_id: Symbol
-    projection: list[Projection] # どのフィールドか
+    projection: tuple[Projection, ...] # どのフィールドか
+
+    @classmethod
+    def make(cls, sym:Symbol):
+        return Place(sym, tuple())
     
     @classmethod
-    def is_prefix(cls, base_proj: list[Projection], target_proj: list[Projection]) -> bool:
+    def is_prefix(cls, base_proj: tuple[Projection, ...], target_proj: tuple[Projection, ...]) -> bool:
         # 短い方のリストの長さ分だけ、中身が完全に一致するか
         base = base_proj or []
         target = target_proj or []
@@ -52,6 +56,9 @@ class Place:
             if b != t:
                 return False
         return True
+
+    def add_projection(self, projection:Projection):
+        return Place(self.local_id, self.projection + (projection, ))
 
     def places_conflict(self, p2: "Place") -> bool:
         if self.local_id != p2.local_id:
@@ -110,3 +117,6 @@ class ResultBorrow():
     result: ResultState
     have: Place
     state: BorrowState
+
+    def add_projection(self, projection:Projection):
+        return ResultBorrow(self.result, self.have.add_projection(projection), self.state)
