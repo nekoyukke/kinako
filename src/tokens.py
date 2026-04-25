@@ -39,15 +39,6 @@ class TokenType(Enum):
 
     # 特別に用意するもの
     END = "@END@"
-    DFFUNC = "@FUNC@" # 関数
-    DFUNION = "@DFLIST@" # Nodeでリストを表すためにする（ゴミ仕様）
-    DFACCESS = "@DFACCESS@" #アクセスとか
-    DFMAP = "@MAP@" # マップ用
-    DFLIST = "@LIST@" # リスト用
-    DFARRAY = "@ARRAY@" # 配列
-    DFTUPLE = "@TUPLE@" # タプル
-    DFARGS = "@ARGS@" # 引数
-
 
     # 型
     tNUMBER = "Number"
@@ -156,8 +147,6 @@ class TokenType(Enum):
     CMP = "<=>"
     LSHIFT = "<<"
     RSHIFT = ">>"
-
-    BACKQUOTE = "BACKQUOTE"
 
 from dataclasses import dataclass
 

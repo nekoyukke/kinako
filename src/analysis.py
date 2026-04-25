@@ -1181,11 +1181,11 @@ class BorrowScope:
         self.map.pop(place)
     
     def get_map(self, place:Place) -> StaticBorrow | None:
+        if place in self.map:
+            return self.map[place]
         if self.parent is None:
             return None
-        if not place in self.map:
-            return self.parent.get_map(place)
-        return self.map[place]
+        return self.parent.get_map(place)
 
     
 # 借用チェック
@@ -1257,10 +1257,29 @@ class ImportNode(Stmt):
                 raise self._util_CallError(f"不明なnode '{node}'", node)
             
     def _visit_Declaration(self, node:DeclarationNode):
-        pass
+        sym = self._util_None_kill(node.symbol, node)
+        if node.right is not None:
+            right = self._visit_expr(node.right)
+            # もしBORROWなら左が正しいか見る
+            if node.vartype == VariableType.BORROW:
+                right = self._util_None_kill_b(right, node)
+                if right.state != BorrowState.BORROW:
+                    # あうと
+                    raise self._util_CallError(f"BORROW束縛は '{right.state}' は不可です。", node)
+                self._Scope.add_map(Place.make(sym), StaticBorrow(BorrowState.ACTIV, node.vartype, right.have))
+                return
+            # それ以外でもおっけーです！
+            self._Scope.add_map(Place.make(sym), StaticBorrow(BorrowState.ACTIV, node.vartype, None))
+            return
+        if node.vartype in (VariableType.BORROW, VariableType.CONST, VariableType.VAL):
+            raise self._util_CallError("初期値がありません。", node)
+        # 異状なし
+        self._Scope.add_map(Place.make(sym), StaticBorrow(BorrowState.ACTIV, node.vartype, None))
+        return
 
     def _visit_ExprStmt(self, node:ExprStmtNode):
-        pass
+        self._visit_expr(node.expr)
+        return
 
     def _visit_Block(self, node:BlockNode):
         pass
@@ -1281,7 +1300,7 @@ class ImportNode(Stmt):
         pass
 
     def _visit_Import(self, node:ImportNode):
-        pass
+        raise
     
     def _visit_expr(self, node:Expr) -> ResultBorrow | None:
         match(node):
@@ -1319,7 +1338,7 @@ class ImportNode(Stmt):
         sym = self._util_None_kill(node.symbol, node)
         static = self._Scope.get_map(Place.make(sym))
         if static is None:
-            raise self._util_CallError(f"不明な変数 '{sym.name}' 不明な値は使用できません。", node)
+            raise self._util_CallError(f"不明な変数 '{sym.name}' 不明な値は使用できません。\n{self._Scope.map[Place.make(sym)]}", node)
         if static.have is None:
             return ResultBorrow(ResultState.OWNED, Place.make(sym), static.state)
         return ResultBorrow(ResultState.BORROWED, static.have, static.state)
@@ -1351,21 +1370,21 @@ class ImportNode(Stmt):
         borrow = self._util_None_kill_b(borrow, node)
         symbol = node.right.symbol
         symbol = self._util_None_kill(symbol, node)
-        borrow.have.projection.append(Projection(ProjectionKind.FIELD, symbol))
-        return borrow
+        result = borrow.add_projection(Projection(ProjectionKind.FIELD, symbol))
+        return result
 
     def _visit_expr_Index(self, node:IndexAccessNode) -> ResultBorrow | None:
         borrow = self._visit_expr(node)
         borrow = self._util_None_kill_b(borrow, node)
-        borrow.have.projection.append(Projection(ProjectionKind.INDEX, None))
-        return borrow
+        result = borrow.add_projection(Projection(ProjectionKind.INDEX, None))
+        return result
 
     def _visit_expr_AsCast(self, node:AsCastNode) -> ResultBorrow | None:
         self._visit_expr(node)
         return None
 
     def _visit_expr_MoveOp(self, node:MoveOpNode) -> ResultBorrow | None:
-        borrow = self._visit_expr(node)
+        borrow = self._visit_expr(node.right)
         borrow = self._util_None_kill_b(borrow, node)
         sb = self._Scope.get_map(borrow.have)
         if sb is None:
@@ -1376,7 +1395,7 @@ class ImportNode(Stmt):
         return ResultBorrow(ResultState.OWNED, borrow.have, BorrowState.MOVED)
 
     def _visit_expr_BorrowOp(self, node:BorrowOpNode) -> ResultBorrow | None:
-        borrow = self._visit_expr(node)
+        borrow = self._visit_expr(node.right)
         borrow = self._util_None_kill_b(borrow, node)
         sb = self._Scope.get_map(borrow.have)
         if sb is None:
