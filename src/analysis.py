@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, Dict
+from copy import copy
 
 from src.myast import *
 from src.utils import AnalysisError, logging
@@ -1174,6 +1175,25 @@ class BorrowScope:
 
     def add_map(self, place:Place, borrow:StaticBorrow):
         self.map[place] = borrow
+
+    def add_ref(self, place:Place):
+        if not place in self.map:
+            self.add_parent_place(place)
+        self.map[place].add_borrow()
+        return
+
+    def add_state(self, place:Place, state:BorrowState):
+        if not place in self.map:
+            self.add_parent_place(place)
+        self.map[place].state = state
+        return
+        
+    def add_parent_place(self, place:Place):
+        borrow = self.get_map(place)
+        if borrow is None:
+            raise
+        self.map[place] = borrow
+        return
     
     def del_map(self, place:Place):
         if not place in self.map:
@@ -1186,7 +1206,6 @@ class BorrowScope:
         if self.parent is None:
             return None
         return self.parent.get_map(place)
-
     
 # 借用チェック
 class BorrowingChecker:
@@ -1218,9 +1237,45 @@ class BorrowingChecker:
         if value is None:
             raise self._util_CallError("一時的に破棄される可能性があるオブジェクトは使用できません。", node)
         return value
+    
+    def marge_scope(self, scope1:BorrowScope, scope2:BorrowScope, node:Stmt):
+        map1 = scope1.map
+        map2 = scope2.map
+        result = self._Scope
+        all_places = set(map1.keys()) | set(map2.keys())
+        for p in all_places:
+            state_a = scope1.get_map(p)
+            state_b = scope2.get_map(p)
+            if not state_a or not state_b:
+                raise RuntimeError("不明なエラーです。Issueして")
+            new_static = self._merge_static(state_a, state_b, node)
+            result.map[p] = new_static
+    
+    def _merge_static(self, state1:StaticBorrow, state2:StaticBorrow, node:Stmt):
+        state = self._merge_state(state1.state, state2.state, node)
+        if state1.vt != state2.vt:
+            raise self._util_CallError(f"マージ結果が違反です。{state1}と{state2}", node)
+        vt = state1.vt
+        if state1.ref_count != state2.ref_count:
+            raise self._util_CallError(f"マージ結果が違反です。{state1}と{state2}", node)
+        ref_count = state1.ref_count
+        if state1.have != state2.have:
+            raise self._util_CallError(f"マージ結果が違反です。{state1}と{state2}", node)
+        have = state1.have
+        return StaticBorrow(state, vt, have, ref_count)
+
+
+    def _merge_state(self, state1:BorrowState, state2:BorrowState, node:Stmt):
+        if state1 == state2:
+            return state1
+        if state1 == BorrowState.ACTIV and state2 == BorrowState.UNINITIALIZED:
+            return BorrowState.UNINITIALIZED
+        if state2 == BorrowState.ACTIV and state1 == BorrowState.UNINITIALIZED:
+            return BorrowState.UNINITIALIZED
+        raise self._util_CallError(f"マージ結果が違反です。{state1}と{state2}", node)
 
     # STMTで回す
-    def _visit_Stmt(self, node:Stmt):
+    def _visit_Stmt(self, node:Stmt) -> BorrowScope:
         """
 class DeclarationNode(Stmt):
 class ExprStmtNode(Stmt):
@@ -1256,7 +1311,7 @@ class ImportNode(Stmt):
             case _:
                 raise self._util_CallError(f"不明なnode '{node}'", node)
             
-    def _visit_Declaration(self, node:DeclarationNode):
+    def _visit_Declaration(self, node:DeclarationNode) -> BorrowScope:
         sym = self._util_None_kill(node.symbol, node)
         if node.right is not None:
             right = self._visit_expr(node.right)
@@ -1267,39 +1322,47 @@ class ImportNode(Stmt):
                     # あうと
                     raise self._util_CallError(f"BORROW束縛は '{right.state}' は不可です。", node)
                 self._Scope.add_map(Place.make(sym), StaticBorrow(BorrowState.ACTIV, node.vartype, right.have))
-                return
+                return self._Scope
             # それ以外でもおっけーです！
             self._Scope.add_map(Place.make(sym), StaticBorrow(BorrowState.ACTIV, node.vartype, None))
-            return
+            return self._Scope
         if node.vartype in (VariableType.BORROW, VariableType.CONST, VariableType.VAL):
             raise self._util_CallError("初期値がありません。", node)
         # 異状なし
         self._Scope.add_map(Place.make(sym), StaticBorrow(BorrowState.ACTIV, node.vartype, None))
-        return
+        return self._Scope
 
-    def _visit_ExprStmt(self, node:ExprStmtNode):
+    def _visit_ExprStmt(self, node:ExprStmtNode) -> BorrowScope:
         self._visit_expr(node.expr)
-        return
+        return self._Scope
 
-    def _visit_Block(self, node:BlockNode):
+    def _visit_Block(self, node:BlockNode) -> BorrowScope:
+        self._Scope = self._Scope.new_scope()
+
+        # 回す
+        for stmt in node.blocks:
+            self._visit_Stmt(stmt)
+        scope = self._Scope
+
+        self._Scope = self._Scope.cloce_scope()
+        return scope
+
+    def _visit_IfStmt(self, node:IfStmtNode) -> BorrowScope:
         pass
 
-    def _visit_IfStmt(self, node:IfStmtNode):
+    def _visit_WhileStmt(self, node:WhileStmtNode) -> BorrowScope:
         pass
 
-    def _visit_WhileStmt(self, node:WhileStmtNode):
+    def _visit_FunctionDef(self, node:FunctionDefNode) -> BorrowScope:
         pass
 
-    def _visit_FunctionDef(self, node:FunctionDefNode):
+    def _visit_ReturnStmt(self, node:ReturnStmtNode) -> BorrowScope:
         pass
 
-    def _visit_ReturnStmt(self, node:ReturnStmtNode):
+    def _visit_ForStmt(self, node:ForNode) -> BorrowScope:
         pass
 
-    def _visit_ForStmt(self, node:ForNode):
-        pass
-
-    def _visit_Import(self, node:ImportNode):
+    def _visit_Import(self, node:ImportNode) -> BorrowScope:
         raise
     
     def _visit_expr(self, node:Expr) -> ResultBorrow | None:
@@ -1404,7 +1467,7 @@ class ImportNode(Stmt):
             raise self._util_CallError("borrowはmutのみが許されます", node)
         if sb.state in (BorrowState.BORROW, BorrowState.MOVED):
             raise self._util_CallError("borrowは所有権が完全では無ければなりません。", node)
-        sb.add_borrow()
+        self._Scope.add_ref(borrow.have)
         return ResultBorrow(ResultState.BORROWED, borrow.have, BorrowState.BORROW)
 
     def _visit_expr_Reference(self, node:ReferenceNode) -> ResultBorrow | None:
