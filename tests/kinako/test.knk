@@ -1,6 +1,6 @@
 
 mut int b = 2;
-{
+if (1== 12) {
     borrow int c = borrow b;
 }
 b = 1;

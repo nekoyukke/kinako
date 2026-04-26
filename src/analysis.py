@@ -1159,8 +1159,17 @@ class BorrowScope:
             return self
         
         for place, borrow in self.map.items():
-            if borrow.state == BorrowState.BORROWED and not borrow.have is None:
-                self.map[borrow.have].release_borrow()
+            print(borrow)
+            if not borrow.have is None:
+                if borrow.state == BorrowState.BORROW:
+                    self.map[borrow.have].release_borrow()
+                    continue
+                if borrow.vt == VariableType.BORROW:
+                    self.map[borrow.have].release_borrow()
+                    continue
+                continue
+            continue
+
         
         for place, borrow in self.map.items():
             free = borrow.get_free_borrow()
@@ -1245,6 +1254,7 @@ class BorrowingChecker:
     def marge_scope(self, scope1:BorrowScope, scope2:BorrowScope, node:Stmt):
         map1 = scope1.map
         map2 = scope2.map
+        raise RuntimeError(map1, map2)
         result = self._Scope
         all_places = set(map1.keys()) | set(map2.keys())
         for p in all_places:
