@@ -20,6 +20,8 @@ class Symbol:
         return hash(self.fq_name)
     def __eq__(self, other:Any):
         return isinstance(other, Symbol) and self.fq_name == other.fq_name
+    def __repr__(self) -> str:
+        return f"{self.name}@{self.fq_name}"
 
 
 
