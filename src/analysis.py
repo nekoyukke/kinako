@@ -1203,6 +1203,10 @@ class BorrowScope:
     def get_map(self, place:Place) -> StaticBorrow | None:
         if place in self.map:
             return self.map[place]
+        if place.projection:
+            parent_place = Place(place.local_id, place.projection[:-1])
+            parent_static = self.get_map(parent_place)
+            return parent_static
         if self.parent is None:
             return None
         return self.parent.get_map(place)
@@ -1250,6 +1254,7 @@ class BorrowingChecker:
                 raise RuntimeError("不明なエラーです。Issueして")
             new_static = self._merge_static(state_a, state_b, node)
             result.map[p] = new_static
+        return result
     
     def _merge_static(self, state1:StaticBorrow, state2:StaticBorrow, node:Stmt):
         state = self._merge_state(state1.state, state2.state, node)
@@ -1348,8 +1353,19 @@ class ImportNode(Stmt):
         return scope
 
     def _visit_IfStmt(self, node:IfStmtNode) -> BorrowScope:
-        pass
-
+        self._visit_expr(node.condition)
+        scope = copy(self._Scope)
+        self._visit_Stmt(node.then_block)
+        scope1 = copy(self._Scope)
+        self._Scope = copy(scope)
+        if node.else_block:
+            self._visit_Stmt(node.else_block)
+            scope2 = copy(self._Scope)
+        else:
+            scope2 = copy(scope)
+        self._Scope = self.marge_scope(scope1, scope2, node)
+        return self._Scope
+        
     def _visit_WhileStmt(self, node:WhileStmtNode) -> BorrowScope:
         pass
 
@@ -1402,9 +1418,7 @@ class ImportNode(Stmt):
         static = self._Scope.get_map(Place.make(sym))
         if static is None:
             raise self._util_CallError(f"不明な変数 '{sym.name}' 不明な値は使用できません。\n{self._Scope.map[Place.make(sym)]}", node)
-        if static.have is None:
-            return ResultBorrow(ResultState.OWNED, Place.make(sym), static.state)
-        return ResultBorrow(ResultState.BORROWED, static.have, static.state)
+        return ResultBorrow(ResultState.OWNED, Place.make(sym), static.state)
 
     def _visit_expr_binary(self, node:BinaryOpNode) -> ResultBorrow | None:
         self._visit_expr(node.right)
@@ -1423,6 +1437,11 @@ class ImportNode(Stmt):
         left = self._util_None_kill_b(left, node)
         if left.state in (BorrowState.BORROW, BorrowState.BORROWED, BorrowState.MOVED, ):
             raise self._util_CallError("有効値ではありません！", node)
+        sb = self._Scope.get_map(left.have)
+        if sb is None:
+            raise self._util_CallError("不明な左辺", node)
+        if sb.vt in (VariableType.BORROW, VariableType.CONST, VariableType.VAL):
+            raise self._util_CallError("左辺は変更不可能な束縛によって制御されているため、制御ができません", node)
         return self._visit_expr(node.right)
 
     def _visit_expr_CallExpr(self, node:CallExprNode) -> ResultBorrow | None:

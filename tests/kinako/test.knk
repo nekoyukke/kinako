@@ -1,0 +1,6 @@
+
+mut int b = 2;
+{
+    borrow int c = borrow b;
+}
+b = 1;
