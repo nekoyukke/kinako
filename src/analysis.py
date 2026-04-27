@@ -1500,10 +1500,28 @@ class ImportNode(Stmt):
         return ResultBorrow(ResultState.BORROWED, borrow.have, BorrowState.BORROW)
 
     def _visit_expr_Reference(self, node:ReferenceNode) -> ResultBorrow | None:
-        pass
+        borrow = self._visit_expr(node.right)
+        borrow = self._util_None_kill_b(borrow, node)
+        sb = self._Scope.get_map(borrow.have)
+        if sb is None:
+            raise
+        if sb.vt != VariableType.LET:
+            raise self._util_CallError("&はletのみが許されます", node)
+        return ResultBorrow(ResultState.BORROWED, borrow.have, BorrowState.ACTIV)
 
     def _visit_expr_Dereference(self, node:DereferenceNode) -> ResultBorrow | None:
-        pass
+        borrow = self._visit_expr(node.right)
+        borrow = self._util_None_kill_b(borrow, node)
+        sb = self._Scope.get_map(borrow.have)
+        if sb is None:
+            raise
+        if sb.vt != VariableType.LET:
+            raise self._util_CallError("&はletのみが許されます", node)
+        place = borrow.have.add_projection(Projection(ProjectionKind.DEREF, None))
+        data = self._Scope.get_map(place)
+        if data is None:
+            raise
+        return ResultBorrow(ResultState.OWNED, place, data.state)
 
 if __name__ == "__main__":
     t = BinaryOpNode(0,0,0,NumberNode(0,0,0,42,Token(TokenType.NUMBER, 42),10),Token(TokenType.DOUBLEDOT, "+"), NumberNode(0,0,0,42,Token(TokenType.NUMBER, 42),10))
