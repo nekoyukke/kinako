@@ -5,8 +5,6 @@ git push kinako "branch-$now"
 git add .
 git commit -m $args[0]
 git push kinako "branch-$now"
-git switch main
-git branch -D  "branch-$now"
 echo "remote:"
 git remote
 echo "branch:"
