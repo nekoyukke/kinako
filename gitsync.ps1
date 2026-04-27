@@ -8,6 +8,7 @@ git commit -m $args[0]
 git push kinako "branch-$now"
 
 git switch main
+Read-Host "エンターキーを押すと次へ進みます..."
 git checkout .
 git pull kinako main --rebase
 git branch -D "branch-$now"
