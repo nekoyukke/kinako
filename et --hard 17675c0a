@@ -1,0 +1,59 @@
+[33m0a9a601[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31mkinako/main[m[33m)[m HEAD@{0}: checkout: moving from sync-20260429-1646 to main
+[33m17675c0[m HEAD@{1}: commit: たすけて
+[33m0a9a601[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31mkinako/main[m[33m)[m HEAD@{2}: checkout: moving from main to sync-20260429-1646
+[33m0a9a601[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31mkinako/main[m[33m)[m HEAD@{3}: reset: moving to HEAD
+[33m0a9a601[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31mkinako/main[m[33m)[m HEAD@{4}: pull kinako main: Fast-forward
+[33m7d6eb62[m[33m ([m[1;31mkinako/auto-20260429-1400[m[33m, [m[1;31mkinako/auto-20260429-1350[m[33m)[m HEAD@{5}: checkout: moving from auto-20260429-1400 to main
+[33m7d6eb62[m[33m ([m[1;31mkinako/auto-20260429-1400[m[33m, [m[1;31mkinako/auto-20260429-1350[m[33m)[m HEAD@{6}: checkout: moving from main to auto-20260429-1400
+[33m7d6eb62[m[33m ([m[1;31mkinako/auto-20260429-1400[m[33m, [m[1;31mkinako/auto-20260429-1350[m[33m)[m HEAD@{7}: merge auto-20260429-1350: Fast-forward
+[33m022fc47[m HEAD@{8}: checkout: moving from auto-20260429-1350 to main
+[33m7d6eb62[m[33m ([m[1;31mkinako/auto-20260429-1400[m[33m, [m[1;31mkinako/auto-20260429-1350[m[33m)[m HEAD@{9}: checkout: moving from auto-20260425-0856 to auto-20260429-1350
+[33m8e66b53[m[33m ([m[1;31mkinako/auto-20260425-0856[m[33m)[m HEAD@{10}: checkout: moving from auto-20260425-0833 to auto-20260425-0856
+[33m8611a85[m[33m ([m[1;31mkinako/auto-20260425-0833[m[33m)[m HEAD@{11}: checkout: moving from auto-20260424-2114 to auto-20260425-0833
+[33m1244ab2[m HEAD@{12}: checkout: moving from auto-20260426-1210 to auto-20260424-2114
+[33mcbc9e18[m[33m ([m[1;31mkinako/auto-20260426-1210[m[33m)[m HEAD@{13}: checkout: moving from auto-20260425-0923 to auto-20260426-1210
+[33m24922e6[m HEAD@{14}: checkout: moving from auto-20260425-0833 to auto-20260425-0923
+[33m8611a85[m[33m ([m[1;31mkinako/auto-20260425-0833[m[33m)[m HEAD@{15}: checkout: moving from auto-20260424-1520 to auto-20260425-0833
+[33mf14d571[m[33m ([m[1;31mkinako/auto-20260424-1527[m[33m)[m HEAD@{16}: checkout: moving from main to auto-20260424-1520
+[33m022fc47[m HEAD@{17}: checkout: moving from auto-20260429-1350 to main
+[33m7d6eb62[m[33m ([m[1;31mkinako/auto-20260429-1400[m[33m, [m[1;31mkinako/auto-20260429-1350[m[33m)[m HEAD@{18}: commit: Auto update: 20260429-1350
+[33m9024bea[m[33m ([m[1;31mkinako/auto-20260429-1342[m[33m)[m HEAD@{19}: checkout: moving from auto-20260429-1342 to auto-20260429-1350
+[33m9024bea[m[33m ([m[1;31mkinako/auto-20260429-1342[m[33m)[m HEAD@{20}: commit: aa
+[33mb9bb6ba[m[33m ([m[1;31mkinako/auto-20260426-2351[m[33m)[m HEAD@{21}: checkout: moving from auto-20260426-2351 to auto-20260429-1342
+[33mb9bb6ba[m[33m ([m[1;31mkinako/auto-20260426-2351[m[33m)[m HEAD@{22}: commit: アップデート
+[33mcd671fa[m[33m ([m[1;31mkinako/auto-20260426-1604[m[33m)[m HEAD@{23}: checkout: moving from auto-20260426-1604 to auto-20260426-2351
+[33mcd671fa[m[33m ([m[1;31mkinako/auto-20260426-1604[m[33m)[m HEAD@{24}: commit: アップデート
+[33mcbc9e18[m[33m ([m[1;31mkinako/auto-20260426-1210[m[33m)[m HEAD@{25}: checkout: moving from auto-20260426-1210 to auto-20260426-1604
+[33mcbc9e18[m[33m ([m[1;31mkinako/auto-20260426-1210[m[33m)[m HEAD@{26}: commit: Auto update: 20260426-1210
+[33m597b4a4[m[33m ([m[1;31mkinako/auto-20260425-1724[m[33m)[m HEAD@{27}: checkout: moving from auto-20260425-1724 to auto-20260426-1210
+[33m597b4a4[m[33m ([m[1;31mkinako/auto-20260425-1724[m[33m)[m HEAD@{28}: commit: 更新。宣言文と、borrow, move各種演算に対応。
+[33m24922e6[m HEAD@{29}: checkout: moving from auto-20260425-0923 to auto-20260425-1724
+[33m24922e6[m HEAD@{30}: commit: Auto update: 20260425-0923
+[33m8e66b53[m[33m ([m[1;31mkinako/auto-20260425-0856[m[33m)[m HEAD@{31}: checkout: moving from auto-20260425-0856 to auto-20260425-0923
+[33m8e66b53[m[33m ([m[1;31mkinako/auto-20260425-0856[m[33m)[m HEAD@{32}: commit: borrowチェッカの更新とドキュメント更新
+[33m8611a85[m[33m ([m[1;31mkinako/auto-20260425-0833[m[33m)[m HEAD@{33}: checkout: moving from auto-20260425-0833 to auto-20260425-0856
+[33m8611a85[m[33m ([m[1;31mkinako/auto-20260425-0833[m[33m)[m HEAD@{34}: commit: borrowチェッカの更新。
+[33m1244ab2[m HEAD@{35}: checkout: moving from auto-20260424-2114 to auto-20260425-0833
+[33m1244ab2[m HEAD@{36}: commit: コミット
+[33ma911030[m[33m ([m[1;31mkinako/auto-20260424-2057[m[33m)[m HEAD@{37}: checkout: moving from auto-20260424-2057 to auto-20260424-2114
+[33ma911030[m[33m ([m[1;31mkinako/auto-20260424-2057[m[33m)[m HEAD@{38}: checkout: moving from auto-20260424-2056 to auto-20260424-2057
+[33ma911030[m[33m ([m[1;31mkinako/auto-20260424-2057[m[33m)[m HEAD@{39}: checkout: moving from auto-20260424-2054 to auto-20260424-2056
+[33ma911030[m[33m ([m[1;31mkinako/auto-20260424-2057[m[33m)[m HEAD@{40}: checkout: moving from auto-20260424-2053 to auto-20260424-2054
+[33ma911030[m[33m ([m[1;31mkinako/auto-20260424-2057[m[33m)[m HEAD@{41}: commit: Auto update: 20260424-2053
+[33m5a1a081[m HEAD@{42}: checkout: moving from auto-20260424-2052 to auto-20260424-2053
+[33m5a1a081[m HEAD@{43}: commit: Auto update: 20260424-2052
+[33m11ecc48[m HEAD@{44}: checkout: moving from auto-20260424-2051 to auto-20260424-2052
+[33m11ecc48[m HEAD@{45}: commit: Auto update: 20260424-2051
+[33md10873f[m HEAD@{46}: checkout: moving from auto-20260424-2050 to auto-20260424-2051
+[33md10873f[m HEAD@{47}: checkout: moving from auto-20260424-1600 to auto-20260424-2050
+[33md10873f[m HEAD@{48}: commit: Auto update: 20260424-1600
+[33m92f4501[m HEAD@{49}: checkout: moving from auto-20260424-1534 to auto-20260424-1600
+[33m92f4501[m HEAD@{50}: commit: Auto update: 20260424-1534
+[33mf14d571[m[33m ([m[1;31mkinako/auto-20260424-1527[m[33m)[m HEAD@{51}: checkout: moving from auto-20260424-1527 to auto-20260424-1534
+[33mf14d571[m[33m ([m[1;31mkinako/auto-20260424-1527[m[33m)[m HEAD@{52}: checkout: moving from auto-20260424-1520 to auto-20260424-1527
+[33mf14d571[m[33m ([m[1;31mkinako/auto-20260424-1527[m[33m)[m HEAD@{53}: commit: Fix: Apply .gitignore
+[33m203120f[m[33m ([m[1;31mkinako/auto-20260424-1520[m[33m)[m HEAD@{54}: commit: Auto update: 20260424-1520
+[33m022fc47[m HEAD@{55}: checkout: moving from main to auto-20260424-1520
+[33m022fc47[m HEAD@{56}: commit: てｓｙと
+[33ma7c8318[m HEAD@{57}: reset: moving to HEAD
+[33ma7c8318[m HEAD@{58}: commit (initial): てｓｙと
