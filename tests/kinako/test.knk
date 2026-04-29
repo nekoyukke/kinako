@@ -1,6 +1,7 @@
+mut int a = 1;
 
-mut int b = 2;
-if (1== 12) {
-    borrow int c = borrow b;
+
+borrow int b = borrow a;
+{
+    borrow int c = borrow a;
 }
-b = 1;

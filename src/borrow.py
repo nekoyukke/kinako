@@ -120,3 +120,88 @@ class ResultBorrow():
 
     def add_projection(self, projection:Projection):
         return ResultBorrow(self.result, self.have.add_projection(projection), self.state)
+    
+
+
+@dataclass
+class BorrowScope:
+    source: str
+    map: dict[Place, StaticBorrow] = field(default_factory=dict[Place, StaticBorrow]) # 内部のシンボルと借り状況
+    parent: Optional["BorrowScope"] = None # 親
+    def deep(self) -> int:
+        if self.parent is None:
+            return 0
+        return self.parent.deep() + 1
+    
+    def get_parent(self):
+        return self.parent
+    
+    def new_scope(self):
+        return BorrowScope(self.source, {}, self)
+    
+    def cloce_scope(self):
+        # 早期リターン
+        if self.parent is None:
+            return self
+        
+        for place, borrow in self.map.items():
+            print(borrow)
+            if not borrow.have is None:
+                if borrow.state == BorrowState.BORROW:
+                    self.map[borrow.have].release_borrow()
+                    continue
+                if borrow.vt == VariableType.BORROW:
+                    self.map[borrow.have].release_borrow()
+                    continue
+                continue
+            continue
+
+        
+        for place, borrow in self.map.items():
+            free = borrow.get_free_borrow()
+            if isinstance(free, Error):
+                node = place.local_id.node
+                raise AnalysisError(f"解放値に借用が入っています。{place.local_id.name},カウント数:{borrow.ref_count}", node.line, node.column, self.source, "", node.len)
+            if free is None:
+                # 正しい
+                continue
+            continue
+        return self.parent
+
+    def add_map(self, place:Place, borrow:StaticBorrow):
+        self.map[place] = borrow
+
+    def add_ref(self, place:Place):
+        if not place in self.map:
+            self.add_parent_place(place)
+        self.map[place].add_borrow()
+        return
+
+    def add_state(self, place:Place, state:BorrowState):
+        if not place in self.map:
+            self.add_parent_place(place)
+        self.map[place].state = state
+        return
+        
+    def add_parent_place(self, place:Place):
+        borrow = self.get_map(place)
+        if borrow is None:
+            raise
+        self.map[place] = borrow
+        return
+    
+    def del_map(self, place:Place):
+        if not place in self.map:
+            return
+        self.map.pop(place)
+    
+    def get_map(self, place:Place) -> StaticBorrow | None:
+        if place in self.map:
+            return self.map[place]
+        if place.projection:
+            parent_place = Place(place.local_id, place.projection[:-1])
+            parent_static = self.get_map(parent_place)
+            return parent_static
+        if self.parent is None:
+            return None
+        return self.parent.get_map(place)

@@ -44,8 +44,6 @@ def ast(Tokens:list[Token], source: str):
         exp = Program(0,0,0,[],[], [])
         while cu("program").type != t:
             res = stmt()
-            if isinstance(res, ExprStmtNode)and type(res.expr) == Expr:
-                continue
             exp.blocks += [res]
         return exp
     
