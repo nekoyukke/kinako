@@ -1254,13 +1254,13 @@ class BorrowingChecker:
     def marge_scope(self, scope1:BorrowScope, scope2:BorrowScope, node:Stmt):
         map1 = scope1.map
         map2 = scope2.map
-        raise RuntimeError(map1, map2)
         result = self._Scope
         all_places = set(map1.keys()) | set(map2.keys())
         for p in all_places:
             state_a = scope1.get_map(p)
             state_b = scope2.get_map(p)
             if not state_a or not state_b:
+                continue
                 raise RuntimeError("不明なエラーです。Issueして")
             new_static = self._merge_static(state_a, state_b, node)
             result.map[p] = new_static
