@@ -1377,6 +1377,10 @@ class ImportNode(Stmt):
         return self._Scope
         
     def _visit_WhileStmt(self, node:WhileStmtNode) -> BorrowScope:
+        self._visit_expr(node.condition)
+
+        
+        self._visit_Stmt(node.body)
 
     def _visit_FunctionDef(self, node:FunctionDefNode) -> BorrowScope:
         pass
