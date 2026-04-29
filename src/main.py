@@ -2,7 +2,9 @@ from src.lexer import tokenize
 from src.tokens import Token
 from src.myast import *
 from src.parser import *
-from src.analysis import *
+from src.borrow_checker import *
+from src.type_checker import *
+from src.scope_checker import *
 
 import logging
 import src.utils as utils  # type: ignore
