@@ -161,7 +161,6 @@ class BorrowScope:
             free = borrow.get_free_borrow()
             if isinstance(free, Error):
                 node = place.local_id.node
-                raise
                 raise AnalysisError(f"解放値に借用が入っています。{place.local_id.name},カウント数:{borrow.ref_count}", node.line, node.column, self.source, "", node.len)
             if free is None:
                 # 正しい
