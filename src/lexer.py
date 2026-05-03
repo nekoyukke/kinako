@@ -113,8 +113,6 @@ def tokenize(source: str) -> list[Token]:
             raise RuntimeError(f"予想外のトークン！{mo.group()}")
         if kind == 'SKIP' or kind == 'COMMENT':
             continue
-        elif kind == 'TYPE_REF':
-            tokens.append(Token(TokenType.BACKQUOTE, value, line, col, value))
         elif kind == "UNSAFE":
             tokens.append(Token(TokenType.UNSAFE, value, line, col, value))
         elif value in KEYWORDS:
