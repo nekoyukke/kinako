@@ -1,0 +1,3 @@
+fn None print(s:String) {
+    return None;
+}

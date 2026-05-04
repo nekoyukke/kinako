@@ -79,20 +79,28 @@ class ImportNode(Stmt):
                 raise self._util_CallError(f"不明なnode '{node}'", node)
             
     def _visit_Declaration(self, node:DeclarationNode):
+        pass
 
     def _visit_ExprStmt(self, node:ExprStmtNode):
+        pass
 
     def _visit_Block(self, node:BlockNode):
+        pass
 
     def _visit_IfStmt(self, node:IfStmtNode):
+        pass
         
     def _visit_WhileStmt(self, node:WhileStmtNode):
+        pass
 
     def _visit_FunctionDef(self, node:FunctionDefNode):
+        pass
 
     def _visit_ReturnStmt(self, node:ReturnStmtNode):
+        pass
 
     def _visit_ForStmt(self, node:ForNode):
+        pass
 
     def _visit_Import(self, node:ImportNode):
         raise
@@ -130,6 +138,7 @@ class ImportNode(Stmt):
 
 
     def _visit_expr_Variable(self, node:VariableNode) -> ResultBorrow:
+        pass
 
     def _visit_expr_binary(self, node:BinaryOpNode) -> ResultBorrow | None:
         self._visit_expr(node.right)
@@ -144,22 +153,29 @@ class ImportNode(Stmt):
         return None
 
     def _visit_expr_assign(self, node:AssignNode) -> ResultBorrow | None:
+        pass
 
     def _visit_expr_CallExpr(self, node:CallExprNode) -> ResultBorrow | None:
         pass
 
     def _visit_expr_Member(self, node:MemberAccessNode) -> ResultBorrow | None:
+        pass
 
     def _visit_expr_Index(self, node:IndexAccessNode) -> ResultBorrow | None:
+        pass
 
     def _visit_expr_AsCast(self, node:AsCastNode) -> ResultBorrow | None:
         self._visit_expr(node)
         return None
 
     def _visit_expr_MoveOp(self, node:MoveOpNode) -> ResultBorrow | None:
+        pass
 
     def _visit_expr_BorrowOp(self, node:BorrowOpNode) -> ResultBorrow | None:
+        pass
 
     def _visit_expr_Reference(self, node:ReferenceNode) -> ResultBorrow | None:
+        pass
 
     def _visit_expr_Dereference(self, node:DereferenceNode) -> ResultBorrow | None:
+        pass

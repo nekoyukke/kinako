@@ -2,3 +2,4 @@ __pycache__/
 .pytest_cache
 kinako.egg-info
 .git
+.vscode
