@@ -1,0 +1,4 @@
+let List<int> foo = 1..100;
+for i in foo {
+    foo;
+}
