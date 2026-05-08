@@ -47,7 +47,9 @@ class TokenType(Enum):
     MUT = r'mut\b'
 
     # 後付け系
-    
+    ANCHOR = r'anchor\b'
+    HOLD = r'hold\b'
+    GRAB = r'grab\b'
 
     # キーワード
     LABRACKET = r'<'

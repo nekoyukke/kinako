@@ -133,10 +133,8 @@ class Parser(Generic[S,P]):
 
     def _Stmt(self):
         match(self.peek().type):
-            case TokenType.LET | TokenType.CONST | TokenType.MUT | TokenType.SHARED:
+            case TokenType.LET | TokenType.CONST | TokenType.MUT:
                return self.let_node_entry()
-            case TokenType.ANCHOR:
-                return self.anchor()
             case TokenType.FN:
                 return self.fndefine_node()
             case TokenType.FOR:
@@ -153,9 +151,61 @@ class Parser(Generic[S,P]):
                 expr = self._expr_entry()
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
                 return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, expr)
+    
+    def return_node(self):
+        return_token = self.advance()
+        expr = self._expr_entry()
+        self.consume(TokenType.SEMI, "セミコロンがありません")
+        return _stmt.ReturnStmtNode(
+            return_token.line,
+            return_token.column,
+            return_token.len,
+            expr
+        )
         
-    def fndefinenode(self):
-        return
+    def fndefine_node(self):
+        define_token = self.advance()
+        owns = self.Ownership()
+        types = self.type()
+        id_token = self.consume(TokenType.ID, "識別子がありません。")
+        self.consume(TokenType.LPAREN, "かっこ '(' がありません")
+        args:list[_expr.VariableNode[S,P]] = []
+        arg_types:list[_type.TypeNode[S,P]] = []
+        arg_owns:list[Ownership] = []
+        if self.peek().type != TokenType.RPAREN:
+            while True:
+                own_ast = self.Ownership()
+                type_ast = self.type()
+                id_tok = self.consume(TokenType.ID, "識別子が必要です")
+                if self.peek().type == TokenType.ANCHOR_BANG:
+                    self.advance()
+                    args.append(_expr.VariableNode(id_tok.line, id_tok.column, id_tok.len, None, id_tok.value, _expr.AccessModifier.ANCHOR, None))
+                else:
+                    args.append(_expr.VariableNode(id_tok.line, id_tok.column, id_tok.len, None, id_tok.value, _expr.AccessModifier.NONE, None))
+
+                arg_owns.append(own_ast)
+                arg_types.append(type_ast)
+
+                if self.peek().type == TokenType.COMMA:
+                    self.advance()
+                    continue
+                break
+        self.consume(TokenType.RPAREN, "かっこ ')' がありません")
+        body = self._Stmt_entry()
+        if body is None:
+            self.CallError("Body不明", _expr.VariableNode(define_token.line, define_token.column, define_token.len, None, define_token.value))
+        return _stmt.FunctionDefineNode(
+                define_token.line,
+                define_token.column,
+                define_token.len,
+                _expr.VariableNode(id_token.line, id_token.column, id_token.len, None, id_token.value),
+                body,
+                args,
+                arg_types,
+                arg_owns,
+                types,
+                owns
+            )
     
     def block_node(self):
         token = self.consume(TokenType.LBRACE, "なんだよ！！！")
@@ -446,6 +496,9 @@ if __name__ == "__main__":
     from src.frontend.lexer import Lexer
     source = """
 let[mut[const]] List[List[int]] a = 10;
+fn let int add(let int a, let int b) {
+    return a + b;
+}
 """
     lex = Lexer(source)
     from typing import Any
