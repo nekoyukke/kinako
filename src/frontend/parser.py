@@ -141,6 +141,8 @@ class Parser(Generic[S,P]):
                 return self.for_node()
             case TokenType.WHILE:
                 return self.while_node()
+            case TokenType.IF:
+                return self.if_node()
             case TokenType.RETURN:
                 return self.return_node()
             case TokenType.IMPORT:
@@ -151,6 +153,60 @@ class Parser(Generic[S,P]):
                 expr = self._expr_entry()
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
                 return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, expr)
+    
+    def if_node(self) -> _stmt.IfStmtNode[S,P]:
+        iftok = self.advance()
+        
+        # 条件と実行文
+        condition = self._expr_entry()
+        then_stmt = self._Stmt()
+        
+        else_stmt: _stmt.Stmt[S,P] | None = None
+
+        if self.peek().type == TokenType.ELIF:
+            # elif を「if」として再帰的にパースする
+            else_stmt = self.if_node_Elif_helper()
+        elif self.peek().type == TokenType.ELSE:
+            self.advance()
+            else_stmt = self._Stmt()
+            
+        return _stmt.IfStmtNode[S,P](iftok.line, iftok.column, iftok.len, condition, then_stmt, else_stmt)
+
+    def if_node_Elif_helper(self) -> _stmt.IfStmtNode[S,P]:
+        # elif トークンを消費して、中身は if と同じように処理
+        iftok = self.advance()
+        condition = self._expr_entry()
+        then_stmt = self._Stmt()
+        
+        else_stmt = None
+        if self.peek().type == TokenType.ELIF:
+            else_stmt = self.if_node_Elif_helper() # さらに続くなら再帰
+        elif self.peek().type == TokenType.ELSE:
+            self.advance()
+            else_stmt = self._Stmt()
+            
+        return _stmt.IfStmtNode[S,P](iftok.line, iftok.column, iftok.len, condition, then_stmt, else_stmt)
+    
+    def for_node(self) -> _stmt.ForStmtNode[S,P]:
+        fortok = self.advance()
+        
+        var_tok = self.consume(TokenType.ID, "forでは識別子が必要です")
+        var = _expr.VariableNode[S,P](var_tok.line, var_tok.column, var_tok.len, None, var_tok.value)
+        
+        # INキーワードのチェック
+        self.consume(TokenType.IN, "反復変数の後にはinが必要です。")
+        
+        # 繰り返す対象の式
+        expr = self._expr_entry()
+        
+        body = self._Stmt()
+        return _stmt.ForStmtNode[S,P](fortok.line, fortok.column, fortok.column, var, expr, body)
+    
+    def while_node(self) -> _stmt.WhileStmtNode[S,P]:
+        while_token = self.advance()
+        condition = self._expr_entry()
+        body = self._Stmt()
+        return _stmt.WhileStmtNode[S,P](while_token.line, while_token.column, while_token.len, condition, body)
     
     def import_node(self):
         import_token = self.peek()
@@ -237,7 +293,7 @@ class Parser(Generic[S,P]):
         stmts: list[_stmt.Stmt[S,P]] = []
         while (not self.is_at_end()) and self.peek().type != TokenType.RBRACE:
             stmt = self._Stmt()
-            if stmt is None:
+            if stmt is None:  # type: ignore
                 continue
             if isinstance(stmt, _stmt.ImportNode):
                 self.CallError(
@@ -521,10 +577,12 @@ class Parser(Generic[S,P]):
 if __name__ == "__main__":
     from src.frontend.lexer import Lexer
     source = """
-import abc;
+import "abc";
 fn let int main() {
-    return 0h;
+    return 0;
 }
+if 1 1;else 1;
+if 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;else 1;
 """
     lex = Lexer(source)
     from typing import Any

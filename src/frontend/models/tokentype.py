@@ -35,11 +35,13 @@ class TokenType(Enum):
     # 構文
     IF = r'if\b'
     ELSE = r'else\b'
+    ELIF = r'elif\b'
     FOR = r'for\b'
     WHILE = r'while\b'
     IMPORT = r'import\b'
     FN = r'fn\b'
     RETURN = r'return\b'
+    IN = r'in\b'
 
     # 組み込み占有権関連
     LET = r'let\b'

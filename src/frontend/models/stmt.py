@@ -56,6 +56,13 @@ class WhileStmtNode(Stmt[S,P], Generic[S, P]):
 
 
 @dataclass(repr=False)
+class ForStmtNode(Stmt[S,P], Generic[S, P]):
+    var: VariableNode[S,P]
+    expr: Expr[S,P]
+    body: Stmt[S,P]
+
+
+@dataclass(repr=False)
 class FunctionDefineNode(Stmt[S,P], Generic[S, P]):
     name: VariableNode[S,P]
     body: Stmt[S,P]
