@@ -210,8 +210,8 @@ class Parser(Generic[S,P]):
     def block_node(self):
         token = self.consume(TokenType.LBRACE, "なんだよ！！！")
         stmts: list[_stmt.Stmt[S,P]] = []
-        while (not self.is_at_end()) or self.peek().type != TokenType.RBRACE:
-            stmt = self._Stmt_entry()
+        while (not self.is_at_end()) and self.peek().type != TokenType.RBRACE:
+            stmt = self._Stmt()
             if stmt is None:
                 continue
             if isinstance(stmt, _stmt.ImportNode):
@@ -375,9 +375,6 @@ class Parser(Generic[S,P]):
     def _expr_entry(self) -> _expr.Expr[S,P]:
         return self.assignment()
     
-    def expression(self) -> _expr.Expr[S, P]:
-        return self.assignment()
-
     def assignment(self) -> _expr.Expr[S, P]:
         return self.right_binary_op(self.logical_or, [TokenType.ASSIGN], self._make_assign)
 
@@ -421,7 +418,7 @@ class Parser(Generic[S,P]):
             if self.match(TokenType.LPAREN): # 関数呼び出し a()
                 node = self._finish_call(node)
             elif self.match(TokenType.LBRACKET): # インデックス a[0]
-                index = self.expression()
+                index = self._expr_entry()
                 self.consume(TokenType.RBRACKET, "']'がありません。トークン不足！")
                 node = _expr.IndexAccessNode(node.line, node.col, node.len, None, index, node)
             elif self.match(TokenType.DOT): # プロパティアクセス a.b
@@ -495,10 +492,7 @@ class Parser(Generic[S,P]):
 if __name__ == "__main__":
     from src.frontend.lexer import Lexer
     source = """
-let[mut[const]] List[List[int]] a = 10;
-fn let int add(let int a, let int b) {
-    return a + b;
-}
+{0;}
 """
     lex = Lexer(source)
     from typing import Any
