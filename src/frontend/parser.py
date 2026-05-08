@@ -14,14 +14,13 @@ from src.utils.error.base import KinakoRelatedInfo, KinakoHelp
 from src.utils.error.syntax import KinakoSyntaxError
 
 
-from src.core.ownership import Ownership
+from src.core.ownership import OwnershipFlag, Ownership
 
 class Parser(Generic[S,P]):
-    TOKEN_TO_EFFECTS: dict[TokenType, Ownership] = {
-        TokenType.LET: Ownership.OWNED | Ownership.READ,
-        TokenType.MUT: Ownership.OWNED | Ownership.WRITE,
-        TokenType.CONST: Ownership.OWNED | Ownership.READ | Ownership.FREEZE,
-        TokenType.SHARED: Ownership.OWNED | Ownership.READ | Ownership.SHARED,
+    TOKEN_TO_EFFECTS: dict[TokenType, OwnershipFlag] = {
+        TokenType.LET: OwnershipFlag.COPYABLE | OwnershipFlag.MOVABLE | OwnershipFlag.MUTABLE | OwnershipFlag.BORROWABLE,
+        TokenType.MUT: OwnershipFlag.MOVABLE | OwnershipFlag.MUTABLE | OwnershipFlag.BORROWABLE,
+        TokenType.CONST: OwnershipFlag.COPYABLE | OwnershipFlag.MOVABLE | OwnershipFlag.BORROWABLE,
     }
 
     def __init__(self, tokens: list[Token] ,source:str) -> None:
@@ -127,7 +126,7 @@ class Parser(Generic[S,P]):
     def _Stmt_entry(self) -> None | _stmt.Stmt[S,P] | _stmt.ImportNode[S,P]:
         try:
             return self._Stmt()
-        except KinakoSyntaxError:
+        except KinakoSyntaxError: 
             self.synchronize()
         return
     
@@ -139,17 +138,17 @@ class Parser(Generic[S,P]):
             case TokenType.ANCHOR:
                 return self.anchor()
             case TokenType.FN:
-                return self.fndefinenode()
+                return self.fndefine_node()
             case TokenType.FOR:
-                return self.fornode()
+                return self.for_node()
             case TokenType.WHILE:
-                return self.whilenode()
+                return self.while_node()
             case TokenType.RETURN:
-                return self.returnnode()
+                return self.return_node()
             case TokenType.IMPORT:
-                return self.importnode()
+                return self.import_node()
             case TokenType.LBRACE:
-                return self.blocknode()
+                return self.block_node()
             case _:
                 expr = self._expr_entry()
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
@@ -158,7 +157,7 @@ class Parser(Generic[S,P]):
     def fndefinenode(self):
         return
     
-    def blocknode(self):
+    def block_node(self):
         token = self.consume(TokenType.LBRACE, "なんだよ！！！")
         stmts: list[_stmt.Stmt[S,P]] = []
         while (not self.is_at_end()) or self.peek().type != TokenType.RBRACE:
@@ -193,7 +192,7 @@ class Parser(Generic[S,P]):
     
     def let_node(self):
         current = self.peek()
-        ownership = self.ownership()
+        ownership = self.Ownership()
         types = self.type()
         name = self.consume(TokenType.ID, "識別子がありません！！")
         isatmark = self.peek().type == TokenType.ANCHOR_BANG
@@ -212,15 +211,18 @@ class Parser(Generic[S,P]):
         expr = self._expr_entry()
         self.consume(TokenType.SEMI, "セミコロンがありません！")
         return _stmt.LetStmt(current.line, current.column, current.len, ownership, types, variable, expr)
-
-    def ownership(self) -> Ownership:
-        now: Ownership = Ownership.NONE
-        current = self.advance()
-        now |= self.TOKEN_TO_EFFECTS[current.type]
-        while self.peek().type in self.TOKEN_TO_EFFECTS:
-            current = self.advance()
-            now |= self.TOKEN_TO_EFFECTS[current.type]
-        return now
+    
+    def Ownership(self) -> Ownership:
+        """
+        Ownershipをゲットしちゃう
+        """
+        flag = self.TOKEN_TO_EFFECTS[self.advance().type]
+        if self.peek().type == TokenType.LBRACKET:
+            self.consume(TokenType.LBRACKET, "[がありません！")
+            generic = self.Ownership()
+            self.consume(TokenType.RBRACKET, "]がありません！")
+            return Ownership(flag, generic)
+        return Ownership(flag, None)
 
     def type(self) -> _type.TypeNode[S,P]:
         typetoken = self.peek()
@@ -382,6 +384,7 @@ class Parser(Generic[S,P]):
     
     def primary(self) -> _expr.Expr[S,P]:
         current = self.peek()
+        note:list[KinakoHelp] = []
         match(current.type):
             case TokenType.NUMBER:
                 self.advance()
@@ -410,8 +413,15 @@ class Parser(Generic[S,P]):
             case TokenType.STRING:
                 self.advance()
                 return _literal.StrLiteralNode(current.line, current.column, current.len, None, current.value)
+            case TokenType.LET | TokenType.MUT | TokenType.CONST:
+                note.append(
+                    KinakoHelp(
+                        "もしかしたら、宣言文が不完全ではありませんか？"
+                    )
+                )
+                self.CallError(f"不明なトークン{current.value}。", ASTNode(current.line, current.column, current.len), [], note)
             case _:
-                self.CallError(f"不明なトークン{current.value}。", ASTNode(current.line, current.column, current.len))
+                self.CallError(f"不明なトークン{current.value}。", ASTNode(current.line, current.column, current.len), [], note)
     
     def _finish_call(self, expr:_expr.Expr[S,P]) -> _expr.Expr[S,P]:
         # 関数呼び出し
@@ -435,7 +445,7 @@ class Parser(Generic[S,P]):
 if __name__ == "__main__":
     from src.frontend.lexer import Lexer
     source = """
-let shared int a = 10;
+let[mut[const]] List[List[int]] a = 10;
 """
     lex = Lexer(source)
     from typing import Any
@@ -444,4 +454,5 @@ let shared int a = 10;
     pas:Parser[Any,Any] = Parser(toks, source)
     res = pas.parse()
     print(res)
-    print(pas.error)
+    for err in pas.error:
+        print(err.__str__())

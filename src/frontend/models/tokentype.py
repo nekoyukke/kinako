@@ -45,8 +45,6 @@ class TokenType(Enum):
     LET = r'let\b'
     CONST = r'const\b'
     MUT = r'mut\b'
-    ANCHOR = r'anchor\b'
-    SHARED = r'shared\b'
 
     # 後付け系
     
@@ -70,7 +68,7 @@ class TokenType(Enum):
     tANY = r'Any\b'
     tLIST = r'List\b'
     tARRAY = r'Array\b'
-    tDYNAMIC = r'Dynamic\b'
+    tAUTO = r'auto\b'
     tMAP = r'Map\b'
     tPTR = r'Ptr\b'
     tBOOL = r'Bool\b'

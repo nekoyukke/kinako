@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, fields
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Any, cast

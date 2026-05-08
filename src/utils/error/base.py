@@ -1,3 +1,5 @@
+import traceback
+
 class KinakoRelatedInfo:
     def __init__(self, message: str, line: int, column: int, length: int):
         self.message = message
@@ -45,6 +47,7 @@ class KinakoBaseError(Exception):
         return self.__class__.__name__
 
     def __str__(self) -> str:
+        tb = "".join(traceback.format_tb(self.__traceback__))
         lines = self.source.splitlines()
         total = len(lines)
         width = len(str(total))
@@ -101,6 +104,7 @@ class KinakoBaseError(Exception):
 
         return (
             f"{self.WHITE}\nTraceback (most recent call last):\n"
+            f"  {tb}\n"
             f'  File "<source>", line {self.line}\n'
             + "\n".join(snippet)
             + f"\n\n{self.RED}{self.name}: {self.message}{self.RESET}\n"

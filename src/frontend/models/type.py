@@ -16,7 +16,8 @@ class PrimitiveTypeNode(TypeNode[S, P], Generic[S, P]):
     """
     組み込み
     """
-    type_type: TokenType  # ここでトークン種別を再利用
+    # ここでトークン種別を再利用
+    type_type: TokenType
 
 
 @dataclass(repr=False)

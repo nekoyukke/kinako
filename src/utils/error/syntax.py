@@ -17,6 +17,6 @@ mut int b = 4005;
 shared int g = 3;
 """,
         length=10,
-        related=[KinakoRelatedInfo("ライフタイムエラー",4,5,13)],
+        related=[KinakoRelatedInfo("ライフタイムエラー",6,0,17)],
         help=[KinakoHelp("もしかしたら(=^・^=)かもね")]
     )
