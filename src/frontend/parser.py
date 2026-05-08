@@ -152,11 +152,29 @@ class Parser(Generic[S,P]):
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
                 return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, expr)
     
+    def import_node(self):
+        import_token = self.peek()
+        self.advance()
+        expr_import = self.consume(TokenType.STRING, "不明なリテラル")
+        self.consume(TokenType.SEMI, "セミコロンがありません。")
+        return _stmt.ImportNode[S,P](
+            import_token.line,
+            import_token.column,
+            import_token.len,
+            _literal.StrLiteralNode[S,P](
+                expr_import.line,
+                expr_import.column,
+                expr_import.len,
+                None,
+                expr_import.value
+            )
+        )
+    
     def return_node(self):
         return_token = self.advance()
         expr = self._expr_entry()
         self.consume(TokenType.SEMI, "セミコロンがありません")
-        return _stmt.ReturnStmtNode(
+        return _stmt.ReturnStmtNode[S,P](
             return_token.line,
             return_token.column,
             return_token.len,
@@ -179,9 +197,13 @@ class Parser(Generic[S,P]):
                 id_tok = self.consume(TokenType.ID, "識別子が必要です")
                 if self.peek().type == TokenType.ANCHOR_BANG:
                     self.advance()
-                    args.append(_expr.VariableNode(id_tok.line, id_tok.column, id_tok.len, None, id_tok.value, _expr.AccessModifier.ANCHOR, None))
+                    args.append(_expr.VariableNode[S,P](
+                        id_tok.line, id_tok.column, id_tok.len,
+                        None, id_tok.value, _expr.AccessModifier.ANCHOR, None))
                 else:
-                    args.append(_expr.VariableNode(id_tok.line, id_tok.column, id_tok.len, None, id_tok.value, _expr.AccessModifier.NONE, None))
+                    args.append(_expr.VariableNode[S,P](
+                        id_tok.line,id_tok.column, id_tok.len,
+                        None,id_tok.value, _expr.AccessModifier.NONE, None))
 
                 arg_owns.append(own_ast)
                 arg_types.append(type_ast)
@@ -193,12 +215,15 @@ class Parser(Generic[S,P]):
         self.consume(TokenType.RPAREN, "かっこ ')' がありません")
         body = self._Stmt_entry()
         if body is None:
-            self.CallError("Body不明", _expr.VariableNode(define_token.line, define_token.column, define_token.len, None, define_token.value))
-        return _stmt.FunctionDefineNode(
+            self.CallError("Body不明", _expr.VariableNode[S,P](
+                define_token.line, define_token.column, define_token.len,
+                None, define_token.value))
+            
+        return _stmt.FunctionDefineNode[S,P](
                 define_token.line,
                 define_token.column,
                 define_token.len,
-                _expr.VariableNode(id_token.line, id_token.column, id_token.len, None, id_token.value),
+                _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, id_token.value),
                 body,
                 args,
                 arg_types,
@@ -222,7 +247,7 @@ class Parser(Generic[S,P]):
                 )
             stmts.append(stmt)
         self.consume(TokenType.RBRACE, "blockが閉じられていません。")
-        return _stmt.BlockNode(token.line, token.column, token.len, stmts)
+        return _stmt.BlockNode[S,P](token.line, token.column, token.len, stmts)
     
     def let_node_entry(self):   
         checkpoint = self.pos
@@ -238,7 +263,7 @@ class Parser(Generic[S,P]):
             
             expr = self._expr_entry()
             self.consume(TokenType.SEMI, "セミコロンがありません！")
-            return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, expr)
+            return _stmt.ExprStmtNode[S,P](expr.line, expr.col, expr.len, expr)
     
     def let_node(self):
         current = self.peek()
@@ -250,17 +275,19 @@ class Parser(Generic[S,P]):
         variable:_expr.VariableNode[S,P]
         if isatmark:
             self.advance()
-            variable = _expr.VariableNode(name.line, name.column, name.len, None, name.value, _expr.AccessModifier.ANCHOR, None)
+            variable = _expr.VariableNode[S,P](
+                name.line, name.column, name.len, None, name.value, _expr.AccessModifier.ANCHOR, None)
         else:
-            variable = _expr.VariableNode(name.line, name.column, name.len, None, name.value, _expr.AccessModifier.NONE, None)
+            variable = _expr.VariableNode[S,P](
+                name.line, name.column, name.len, None, name.value, _expr.AccessModifier.NONE, None)
         
         if self.peek().type == TokenType.SEMI:
             self.consume(TokenType.SEMI, "セミコロンがありません！")
-            return _stmt.LetStmt(current.line, current.column, current.len, ownership, types, variable, None)
+            return _stmt.LetStmt[S,P](current.line, current.column, current.len, ownership, types, variable, None)
         self.consume(TokenType.ASSIGN, "'='がないです。代入が完成しません")
         expr = self._expr_entry()
         self.consume(TokenType.SEMI, "セミコロンがありません！")
-        return _stmt.LetStmt(current.line, current.column, current.len, ownership, types, variable, expr)
+        return _stmt.LetStmt[S,P](current.line, current.column, current.len, ownership, types, variable, expr)
     
     def Ownership(self) -> Ownership:
         """
@@ -282,15 +309,15 @@ class Parser(Generic[S,P]):
                 self.consume(TokenType.LBRACKET, "[がありません！")
                 element = self.type()
                 self.consume(TokenType.RBRACKET, "]がありません！")
-                return _type.ListTypeNode(typetoken.line, typetoken.column, typetoken.len, element)
+                return _type.ListTypeNode[S,P](typetoken.line, typetoken.column, typetoken.len, element)
             case TokenType.ID:
                 self.advance()
-                return _type.UserDefinedTypeNode(typetoken.line, typetoken.column, typetoken.len, typetoken.value)
+                return _type.UserDefinedTypeNode[S,P](typetoken.line, typetoken.column, typetoken.len, typetoken.value)
             case t if t in NOT_GEMERIC:
                 self.advance()
-                return _type.PrimitiveTypeNode(typetoken.line, typetoken.column, typetoken.len, typetoken.type)
+                return _type.PrimitiveTypeNode[S,P](typetoken.line, typetoken.column, typetoken.len, typetoken.type)
             case _:
-                self.CallError(f"不明な型トークン'{typetoken.value}'。", ASTNode(typetoken.line, typetoken.column, typetoken.len))
+                self.CallError(f"不明な型トークン'{typetoken.value}'。", ASTNode[S,P](typetoken.line, typetoken.column, typetoken.len))
 
 
 
@@ -337,7 +364,7 @@ class Parser(Generic[S,P]):
 
     def _make_binary(self, tok: Token, left: _expr.Expr[S, P], right: _expr.Expr[S, P]) -> _expr.Expr[S, P]:
         """算術演算・比較演算用の工場"""
-        return _expr.BinaryOperationNode(
+        return _expr.BinaryOperationNode[S,P](
             line=tok.line,
             col=tok.column,
             len=tok.len,
@@ -349,7 +376,7 @@ class Parser(Generic[S,P]):
 
     def _make_logical(self, tok: Token, left: _expr.Expr[S, P], right: _expr.Expr[S, P]) -> _expr.Expr[S, P]:
         """&& や || などの論理演算用の工場"""
-        return _expr.LogicalOperationNode(
+        return _expr.LogicalOperationNode[S,P](
             line=tok.line,
             col=tok.column,
             len=tok.len,
@@ -361,7 +388,7 @@ class Parser(Generic[S,P]):
 
     def _make_assign(self, tok: Token, left: _expr.Expr[S, P], right: _expr.Expr[S, P]) -> _expr.Expr[S, P]:
         """代入用の工場"""
-        return _expr.AssignNode(
+        return _expr.AssignNode[S,P](
             line=tok.line,
             col=tok.column,
             len=tok.len,
@@ -403,7 +430,7 @@ class Parser(Generic[S,P]):
         if self.match(TokenType.MINUS, TokenType.PLUS):
             operator_token = self.previous()
             right = self.prefix() # 自分自身を再帰的に呼ぶ
-            return _expr.UnaryOperationNode(
+            return _expr.UnaryOperationNode[S,P](
                 operator_token.line, operator_token.column, operator_token.len,
                 None, operator_token.type, right
             )
@@ -420,10 +447,10 @@ class Parser(Generic[S,P]):
             elif self.match(TokenType.LBRACKET): # インデックス a[0]
                 index = self._expr_entry()
                 self.consume(TokenType.RBRACKET, "']'がありません。トークン不足！")
-                node = _expr.IndexAccessNode(node.line, node.col, node.len, None, index, node)
+                node = _expr.IndexAccessNode[S,P](node.line, node.col, node.len, None, index, node)
             elif self.match(TokenType.DOT): # プロパティアクセス a.b
                 name = self.consume(TokenType.ID, "プロパティ名が必要です。")
-                node = _expr.MemberAccessNode(node.line, node.col, node.len, None, node, name.value)
+                node = _expr.MemberAccessNode[S,P](node.line, node.col, node.len, None, node, name.value)
             else:
                 break
         
@@ -435,20 +462,20 @@ class Parser(Generic[S,P]):
         match(current.type):
             case TokenType.NUMBER:
                 self.advance()
-                return _literal.IntLiteralNode(current.line, current.column, current.len, None, int(current.value))
+                return _literal.IntLiteralNode[S,P](current.line, current.column, current.len, None, int(current.value))
             case TokenType.DECIMAL:
                 self.advance()
-                return _literal.FloatLiteralNode(current.line, current.column, current.len, None, float(current.value))
+                return _literal.FloatLiteralNode[S,P](current.line, current.column, current.len, None, float(current.value))
             case TokenType.ID:
                 self.advance()
                 isatmark = self.peek().type == TokenType.ANCHOR_BANG
                 if isatmark:
                     self.advance()
-                    return _expr.VariableNode(
+                    return _expr.VariableNode[S,P](
                         current.line, current.column, current.len, None, current.value,
                         _expr.AccessModifier.ANCHOR, None
                         )
-                return _expr.VariableNode(
+                return _expr.VariableNode[S,P](
                         current.line, current.column, current.len, None, current.value,
                         _expr.AccessModifier.NONE, None
                         )
@@ -459,16 +486,18 @@ class Parser(Generic[S,P]):
                 return expr
             case TokenType.STRING:
                 self.advance()
-                return _literal.StrLiteralNode(current.line, current.column, current.len, None, current.value)
+                return _literal.StrLiteralNode[S,P](current.line, current.column, current.len, None, current.value)
             case TokenType.LET | TokenType.MUT | TokenType.CONST:
                 note.append(
                     KinakoHelp(
                         "もしかしたら、宣言文が不完全ではありませんか？"
                     )
                 )
-                self.CallError(f"不明なトークン{current.value}。", ASTNode(current.line, current.column, current.len), [], note)
+                self.CallError(f"不明なトークン{current.value}。",
+                               ASTNode[S,P](current.line, current.column, current.len), [], note)
             case _:
-                self.CallError(f"不明なトークン{current.value}。", ASTNode(current.line, current.column, current.len), [], note)
+                self.CallError(f"不明なトークン{current.value}。",
+                               ASTNode[S,P](current.line, current.column, current.len), [], note)
     
     def _finish_call(self, expr:_expr.Expr[S,P]) -> _expr.Expr[S,P]:
         # 関数呼び出し
@@ -487,12 +516,15 @@ class Parser(Generic[S,P]):
                 break
         self.consume(TokenType.RPAREN,"')'がありません！")
         end = self.peek()
-        return _expr.CallNode(func.line, func.column, end.column - func.column, None, expr, args)
+        return _expr.CallNode[S,P](func.line, func.column, end.column - func.column, None, expr, args)
 
 if __name__ == "__main__":
     from src.frontend.lexer import Lexer
     source = """
-{0;}
+import abc;
+fn let int main() {
+    return 0h;
+}
 """
     lex = Lexer(source)
     from typing import Any

@@ -45,9 +45,21 @@ class KinakoBaseError(Exception):
     @property
     def name(self):
         return self.__class__.__name__
+    
+    def format_file_only(self):
+        if not self.__traceback__:
+            return ""
+
+        frames = traceback.extract_tb(self.__traceback__)
+        out = ""
+
+        for f in frames:
+            out += f'  File "{f.filename}", line {f.lineno}, in {f.name}\n'
+
+        return out
 
     def __str__(self) -> str:
-        tb = "".join(traceback.format_tb(self.__traceback__))
+        tb = self.format_file_only()
         lines = self.source.splitlines()
         total = len(lines)
         width = len(str(total))
