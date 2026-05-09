@@ -44,7 +44,3 @@ class Lexer():
                     tokens.append(Token(kind, value, line, col, len(value)))
         tokens.append(Token(TokenType.EOF, "", 0,0,0,))
         return tokens
-
-if __name__ == "__main__":
-    lex = Lexer("let int a = 1;")
-    lex.tokenize()

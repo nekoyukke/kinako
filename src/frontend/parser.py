@@ -621,23 +621,3 @@ class Parser(Generic[S,P]):
         self.consume(TokenType.RPAREN,"')'がありません！")
         end = self.peek()
         return _expr.CallNode[S,P](func.line, func.column, end.column - func.column, None, expr, args)
-
-if __name__ == "__main__":
-    from src.frontend.lexer import Lexer
-    source = """
-import "abc";
-fn let int main() {
-    return 0;
-}
-if 1 1;else 1;
-if 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;elif 1 1;else 1;
-"""
-    lex = Lexer(source)
-    from typing import Any
-    toks = lex.tokenize()
-    print(toks)
-    pas:Parser[Any,Any] = Parser(toks, source)
-    res = pas.parse()
-    print(res)
-    for err in pas.error:
-        print(err.__str__())
