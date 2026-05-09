@@ -88,3 +88,25 @@ class Program(Stmt[S,P], Generic[S, P]):
     blocks: list[Stmt[S,P]]
     imports: list['Program[S,P]']
     import_stmt: list[ImportNode[S,P]]
+
+
+@dataclass(repr=False)
+class AnchorStmtNode(Stmt[S,P], Generic[S,P]):
+    variable: VariableNode[S,P]
+    then_stmt: Stmt[S,P]
+    else_stmt: Stmt[S,P] | None
+
+
+@dataclass(repr=False)
+class GrabStmtNode(Stmt[S,P], Generic[S,P]):
+    variable: VariableNode[S,P]
+    then_stmt: Stmt[S,P]
+    else_stmt: Stmt[S,P] | None
+
+
+@dataclass(repr=False)
+class HoldStmtNode(Stmt[S,P], Generic[S,P]):
+    variable: VariableNode[S,P]
+    then_stmt: Stmt[S,P]
+    else_stmt: Stmt[S,P] | None
+

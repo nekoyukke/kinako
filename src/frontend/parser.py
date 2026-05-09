@@ -149,11 +149,59 @@ class Parser(Generic[S,P]):
                 return self.import_node()
             case TokenType.LBRACE:
                 return self.block_node()
+            case TokenType.ANCHOR:
+                return self.anchor_node()
+            case TokenType.HOLD:
+                return self.hold_node()
+            case TokenType.GRAB:
+                return self.grab_node()
             case _:
                 expr = self._expr_entry()
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
                 return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, expr)
     
+    def grab_node(self) -> _stmt.GrabStmtNode[S,P]:
+        grab_tok = self.advance()
+        id_token = self.consume(TokenType.ID, "'anchor'構文では識別子を入力する必要があります。")
+        then_stmt = self._Stmt()
+        else_stmt = None
+        if self.match(TokenType.ELSE):
+            else_stmt = self._Stmt()
+        return _stmt.GrabStmtNode[S,P](
+            grab_tok.line, grab_tok.column, grab_tok.len,
+            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, id_token.value),
+            then_stmt,
+            else_stmt
+        )
+
+    def hold_node(self) -> _stmt.HoldStmtNode[S,P]:
+        hold_tok = self.advance()
+        id_token = self.consume(TokenType.ID, "'anchor'構文では識別子を入力する必要があります。")
+        then_stmt = self._Stmt()
+        else_stmt = None
+        if self.match(TokenType.ELSE):
+            else_stmt = self._Stmt()
+        return _stmt.HoldStmtNode[S,P](
+            hold_tok.line, hold_tok.column, hold_tok.len,
+            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, id_token.value),
+            then_stmt,
+            else_stmt
+        )
+
+    def anchor_node(self) -> _stmt.AnchorStmtNode[S,P]:
+        anchor_tok = self.advance()
+        id_token = self.consume(TokenType.ID, "'anchor'構文では識別子を入力する必要があります。")
+        then_stmt = self._Stmt()
+        else_stmt = None
+        if self.match(TokenType.ELSE):
+            else_stmt = self._Stmt()
+        return _stmt.AnchorStmtNode[S,P](
+            anchor_tok.line, anchor_tok.column, anchor_tok.len,
+            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, id_token.value),
+            then_stmt,
+            else_stmt
+        )
+
     def if_node(self) -> _stmt.IfStmtNode[S,P]:
         iftok = self.advance()
         
