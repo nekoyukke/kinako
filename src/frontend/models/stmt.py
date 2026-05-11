@@ -5,7 +5,7 @@ from src.core.abs_base import ASTNode, P, S
 from src.frontend.models.expr import Expr, VariableNode
 from src.frontend.models.literal import StrLiteralNode
 from src.frontend.models.type import TypeNode
-from src.core.owner.ownership import Ownership
+from core.possession.possession import Possession
 
 @dataclass(repr=False)
 class Stmt(ASTNode[S,P], Generic[S, P]):
@@ -17,7 +17,7 @@ class LetStmt(Stmt[S,P], Generic[S, P]):
     """
     変数
     """
-    kind: Ownership
+    kind: Possession
     type: TypeNode[S, P]
     name: VariableNode[S, P]
     right: Expr[S, P] | None
@@ -68,9 +68,9 @@ class FunctionDefineNode(Stmt[S,P], Generic[S, P]):
     body: Stmt[S,P]
     args: list[VariableNode[S,P]]
     arg_types: list[TypeNode[S, P]]
-    arg_Own: list[Ownership]
+    arg_Possession: list[Possession]
     return_type: TypeNode[S, P]
-    return_Own: Ownership
+    return_Possession: Possession
 
 
 @dataclass(repr=False)

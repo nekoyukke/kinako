@@ -3,12 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import IntFlag, auto
 
-class OwnershipFlag(IntFlag):
+class PossessionFlag(IntFlag):
     NONE = 0
 
     COPYABLE = auto() # コピーOK
     MOVABLE = auto() # 移動OK
     MUTABLE = auto() # 変更OK
+    ADDRESSABLE = auto() # ポインタ取得自由
     
     SENDABLE = auto() # スレッドsendOK
     THREADSAFE = auto() # スレッドセーフか
@@ -22,6 +23,6 @@ class OwnershipFlag(IntFlag):
 
 
 @dataclass
-class Ownership():
-    flag: OwnershipFlag
-    generic: Ownership | None
+class Possession():
+    flag: PossessionFlag
+    generic: Possession | None

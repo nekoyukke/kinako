@@ -13,3 +13,4 @@ def parse(source:str):
 parse("""
 if 1 1;
 """)
+print(Lexer("").REGEX)

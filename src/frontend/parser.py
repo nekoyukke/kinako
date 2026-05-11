@@ -8,19 +8,20 @@ import src.frontend.models.expr as _expr
 import src.frontend.models.literal as _literal
 import src.frontend.models.type as _type
 from src.core.abs_base import S,P, ASTNode
+from src.core.value import ValueCategory
 
 
 from src.utils.error.base import KinakoRelatedInfo, KinakoHelp
 from src.utils.error.syntax import KinakoSyntaxError
 
 
-from src.core.owner.ownership import OwnershipFlag, Ownership
+from core.possession.possession import PossessionFlag, Possession
 
 class Parser(Generic[S,P]):
-    TOKEN_TO_EFFECTS: dict[TokenType, OwnershipFlag] = {
-        TokenType.LET: OwnershipFlag.COPYABLE | OwnershipFlag.MOVABLE | OwnershipFlag.MUTABLE | OwnershipFlag.BORROWABLE,
-        TokenType.MUT: OwnershipFlag.MOVABLE | OwnershipFlag.MUTABLE | OwnershipFlag.BORROWABLE,
-        TokenType.CONST: OwnershipFlag.COPYABLE | OwnershipFlag.MOVABLE | OwnershipFlag.BORROWABLE,
+    TOKEN_TO_EFFECTS: dict[TokenType, PossessionFlag] = {
+        TokenType.LET: PossessionFlag.COPYABLE | PossessionFlag.MOVABLE | PossessionFlag.MUTABLE | PossessionFlag.BORROWABLE,
+        TokenType.MUT: PossessionFlag.MOVABLE | PossessionFlag.MUTABLE | PossessionFlag.BORROWABLE,
+        TokenType.CONST: PossessionFlag.COPYABLE | PossessionFlag.MOVABLE | PossessionFlag.BORROWABLE,
     }
 
     def __init__(self, tokens: list[Token] ,source:str) -> None:
@@ -169,7 +170,7 @@ class Parser(Generic[S,P]):
             else_stmt = self._Stmt()
         return _stmt.GrabStmtNode[S,P](
             grab_tok.line, grab_tok.column, grab_tok.len,
-            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, id_token.value),
+            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, ValueCategory.LValue, id_token.value),
             then_stmt,
             else_stmt
         )
@@ -183,7 +184,7 @@ class Parser(Generic[S,P]):
             else_stmt = self._Stmt()
         return _stmt.HoldStmtNode[S,P](
             hold_tok.line, hold_tok.column, hold_tok.len,
-            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, id_token.value),
+            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, ValueCategory.LValue, id_token.value),
             then_stmt,
             else_stmt
         )
@@ -197,7 +198,7 @@ class Parser(Generic[S,P]):
             else_stmt = self._Stmt()
         return _stmt.AnchorStmtNode[S,P](
             anchor_tok.line, anchor_tok.column, anchor_tok.len,
-            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, id_token.value),
+            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, ValueCategory.LValue, id_token.value),
             then_stmt,
             else_stmt
         )
@@ -239,7 +240,7 @@ class Parser(Generic[S,P]):
         fortok = self.advance()
         
         var_tok = self.consume(TokenType.ID, "forでは識別子が必要です")
-        var = _expr.VariableNode[S,P](var_tok.line, var_tok.column, var_tok.len, None, var_tok.value)
+        var = _expr.VariableNode[S,P](var_tok.line, var_tok.column, var_tok.len, None, ValueCategory.LValue, var_tok.value)
         
         # INキーワードのチェック
         self.consume(TokenType.IN, "反復変数の後にはinが必要です。")
@@ -270,6 +271,7 @@ class Parser(Generic[S,P]):
                 expr_import.column,
                 expr_import.len,
                 None,
+                ValueCategory.RValue,
                 expr_import.value
             )
         )
@@ -287,27 +289,27 @@ class Parser(Generic[S,P]):
         
     def fndefine_node(self):
         define_token = self.advance()
-        owns = self.Ownership()
+        owns = self.Possession()
         types = self.type()
         id_token = self.consume(TokenType.ID, "識別子がありません。")
         self.consume(TokenType.LPAREN, "かっこ '(' がありません")
         args:list[_expr.VariableNode[S,P]] = []
         arg_types:list[_type.TypeNode[S,P]] = []
-        arg_owns:list[Ownership] = []
+        arg_owns:list[Possession] = []
         if self.peek().type != TokenType.RPAREN:
             while True:
-                own_ast = self.Ownership()
+                own_ast = self.Possession()
                 type_ast = self.type()
                 id_tok = self.consume(TokenType.ID, "識別子が必要です")
                 if self.peek().type == TokenType.ANCHOR_BANG:
                     self.advance()
                     args.append(_expr.VariableNode[S,P](
                         id_tok.line, id_tok.column, id_tok.len,
-                        None, id_tok.value, _expr.AccessModifier.ANCHOR, None))
+                        None, ValueCategory.LValue, id_tok.value, _expr.AccessModifier.ANCHOR, None))
                 else:
                     args.append(_expr.VariableNode[S,P](
                         id_tok.line,id_tok.column, id_tok.len,
-                        None,id_tok.value, _expr.AccessModifier.NONE, None))
+                        None, ValueCategory.LValue, id_tok.value, _expr.AccessModifier.NONE, None))
 
                 arg_owns.append(own_ast)
                 arg_types.append(type_ast)
@@ -321,13 +323,13 @@ class Parser(Generic[S,P]):
         if body is None:
             self.CallError("Body不明", _expr.VariableNode[S,P](
                 define_token.line, define_token.column, define_token.len,
-                None, define_token.value))
+                None, ValueCategory.LValue, define_token.value))
             
         return _stmt.FunctionDefineNode[S,P](
                 define_token.line,
                 define_token.column,
                 define_token.len,
-                _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, id_token.value),
+                _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, ValueCategory.LValue, id_token.value),
                 body,
                 args,
                 arg_types,
@@ -371,7 +373,7 @@ class Parser(Generic[S,P]):
     
     def let_node(self):
         current = self.peek()
-        ownership = self.Ownership()
+        Possession = self.Possession()
         types = self.type()
         name = self.consume(TokenType.ID, "識別子がありません！！")
         isatmark = self.peek().type == TokenType.ANCHOR_BANG
@@ -380,30 +382,30 @@ class Parser(Generic[S,P]):
         if isatmark:
             self.advance()
             variable = _expr.VariableNode[S,P](
-                name.line, name.column, name.len, None, name.value, _expr.AccessModifier.ANCHOR, None)
+                name.line, name.column, name.len, None, ValueCategory.LValue, name.value, _expr.AccessModifier.ANCHOR, None)
         else:
             variable = _expr.VariableNode[S,P](
-                name.line, name.column, name.len, None, name.value, _expr.AccessModifier.NONE, None)
+                name.line, name.column, name.len, None, ValueCategory.LValue, name.value, _expr.AccessModifier.NONE, None)
         
         if self.peek().type == TokenType.SEMI:
             self.consume(TokenType.SEMI, "セミコロンがありません！")
-            return _stmt.LetStmt[S,P](current.line, current.column, current.len, ownership, types, variable, None)
+            return _stmt.LetStmt[S,P](current.line, current.column, current.len, Possession, types, variable, None)
         self.consume(TokenType.ASSIGN, "'='がないです。代入が完成しません")
         expr = self._expr_entry()
         self.consume(TokenType.SEMI, "セミコロンがありません！")
-        return _stmt.LetStmt[S,P](current.line, current.column, current.len, ownership, types, variable, expr)
+        return _stmt.LetStmt[S,P](current.line, current.column, current.len, Possession, types, variable, expr)
     
-    def Ownership(self) -> Ownership:
+    def Possession(self) -> Possession:
         """
-        Ownershipをゲットしちゃう
+        Possessionをゲットしちゃう
         """
         flag = self.TOKEN_TO_EFFECTS[self.advance().type]
         if self.peek().type == TokenType.LBRACKET:
             self.consume(TokenType.LBRACKET, "[がありません！")
-            generic = self.Ownership()
+            generic = self.Possession()
             self.consume(TokenType.RBRACKET, "]がありません！")
-            return Ownership(flag, generic)
-        return Ownership(flag, None)
+            return Possession(flag, generic)
+        return Possession(flag, None)
 
     def type(self) -> _type.TypeNode[S,P]:
         typetoken = self.peek()
@@ -475,7 +477,8 @@ class Parser(Generic[S,P]):
             place=None,
             op=tok.type,
             left=left,
-            right=right
+            right=right,
+            category=ValueCategory.RValue,
         )
 
     def _make_logical(self, tok: Token, left: _expr.Expr[S, P], right: _expr.Expr[S, P]) -> _expr.Expr[S, P]:
@@ -487,7 +490,8 @@ class Parser(Generic[S,P]):
             place=None,
             op=tok.type,
             left=left,
-            right=right
+            right=right,
+            category=ValueCategory.RValue,
         )
 
     def _make_assign(self, tok: Token, left: _expr.Expr[S, P], right: _expr.Expr[S, P]) -> _expr.Expr[S, P]:
@@ -499,7 +503,8 @@ class Parser(Generic[S,P]):
             place=None,
             op=tok.type,
             left=left,
-            right=right
+            right=right,
+            category=ValueCategory.RValue,
         )
 
 
@@ -536,7 +541,7 @@ class Parser(Generic[S,P]):
             right = self.prefix() # 自分自身を再帰的に呼ぶ
             return _expr.UnaryOperationNode[S,P](
                 operator_token.line, operator_token.column, operator_token.len,
-                None, operator_token.type, right
+                None, ValueCategory.RValue, operator_token.type, right
             )
         
         return self.postfix()
@@ -551,10 +556,10 @@ class Parser(Generic[S,P]):
             elif self.match(TokenType.LBRACKET): # インデックス a[0]
                 index = self._expr_entry()
                 self.consume(TokenType.RBRACKET, "']'がありません。トークン不足！")
-                node = _expr.IndexAccessNode[S,P](node.line, node.col, node.len, None, index, node)
+                node = _expr.IndexAccessNode[S,P](node.line, node.col, node.len, None, ValueCategory.LValue, index, node)
             elif self.match(TokenType.DOT): # プロパティアクセス a.b
                 name = self.consume(TokenType.ID, "プロパティ名が必要です。")
-                node = _expr.MemberAccessNode[S,P](node.line, node.col, node.len, None, node, name.value)
+                node = _expr.MemberAccessNode[S,P](node.line, node.col, node.len, None, ValueCategory.LValue, node, name.value)
             else:
                 break
         
@@ -566,21 +571,21 @@ class Parser(Generic[S,P]):
         match(current.type):
             case TokenType.NUMBER:
                 self.advance()
-                return _literal.IntLiteralNode[S,P](current.line, current.column, current.len, None, int(current.value))
+                return _literal.IntLiteralNode[S,P](current.line, current.column, current.len, None, ValueCategory.RValue, int(current.value))
             case TokenType.DECIMAL:
                 self.advance()
-                return _literal.FloatLiteralNode[S,P](current.line, current.column, current.len, None, float(current.value))
+                return _literal.FloatLiteralNode[S,P](current.line, current.column, current.len, None, ValueCategory.RValue, float(current.value))
             case TokenType.ID:
                 self.advance()
                 isatmark = self.peek().type == TokenType.ANCHOR_BANG
                 if isatmark:
                     self.advance()
                     return _expr.VariableNode[S,P](
-                        current.line, current.column, current.len, None, current.value,
+                        current.line, current.column, current.len, None, ValueCategory.LValue, current.value,
                         _expr.AccessModifier.ANCHOR, None
                         )
                 return _expr.VariableNode[S,P](
-                        current.line, current.column, current.len, None, current.value,
+                        current.line, current.column, current.len, None, ValueCategory.LValue, current.value,
                         _expr.AccessModifier.NONE, None
                         )
             case TokenType.LPAREN:
@@ -590,7 +595,7 @@ class Parser(Generic[S,P]):
                 return expr
             case TokenType.STRING:
                 self.advance()
-                return _literal.StrLiteralNode[S,P](current.line, current.column, current.len, None, current.value)
+                return _literal.StrLiteralNode[S,P](current.line, current.column, current.len, None, ValueCategory.RValue, current.value)
             case TokenType.LET | TokenType.MUT | TokenType.CONST:
                 note.append(
                     KinakoHelp(
@@ -620,4 +625,4 @@ class Parser(Generic[S,P]):
                 break
         self.consume(TokenType.RPAREN,"')'がありません！")
         end = self.peek()
-        return _expr.CallNode[S,P](func.line, func.column, end.column - func.column, None, expr, args)
+        return _expr.CallNode[S,P](func.line, func.column, end.column - func.column, None, ValueCategory.LValue, expr, args)

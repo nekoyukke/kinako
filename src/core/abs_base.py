@@ -11,6 +11,8 @@ S = TypeVar("S", bound="absSymbol", covariant=True)
 P = TypeVar("P", bound="absPlace", covariant=True)
 
 
+
+
 class absSymbol(ABC):
     """
     Symbol実体

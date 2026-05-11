@@ -10,6 +10,12 @@ class Symbol(absSymbol):
     """
     Symbol実体
     """
+    fq_name: str
+    name: str
+    type: absType
+    decl_node: 'ASTNode[Symbol, absPlace]'
+
+
     @property
     def get_fq_name(self) -> str: ...
 
