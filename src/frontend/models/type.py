@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Generic
 
-from src.frontend.models.base import ASTNode, P, S
+from src.core.abs_base import ASTNode, P, S
 from src.frontend.models.tokentype import TokenType
 
 

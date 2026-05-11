@@ -4,10 +4,11 @@ from dataclasses import dataclass, fields
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Any, cast
 from enum import Enum
+from typing import Sequence
 
 
-S = TypeVar("S", bound="absSymbol")
-P = TypeVar("P", bound="absPlace")
+S = TypeVar("S", bound="absSymbol", covariant=True)
+P = TypeVar("P", bound="absPlace", covariant=True)
 
 
 class absSymbol(ABC):
@@ -18,7 +19,18 @@ class absSymbol(ABC):
 
     @property
     @abstractmethod
-    def fq_name(self) -> str: ...
+    def get_fq_name(self) -> str: ...
+
+    @property
+    @abstractmethod
+    def get_name(self) -> str: ...
+
+    @property
+    @abstractmethod
+    def get_type(self) -> absType: ...
+
+    @abstractmethod
+    def get_decl_node(self) -> ASTNode[absSymbol, absPlace]: ... 
 
 
 @dataclass(frozen=True)
@@ -30,6 +42,10 @@ class absProjection(ABC):
     @property
     @abstractmethod
     def get_main(self) -> absSymbol: ...
+
+    @property
+    @abstractmethod
+    def get_type(self) -> Enum: ...
 
 
 class absPlace(ABC):
@@ -43,7 +59,31 @@ class absPlace(ABC):
     
     @property
     @abstractmethod
-    def get_projections(self) -> list[absProjection]: ...
+    def get_projections(self) -> Sequence[absProjection]: ...
+
+
+class absType(ABC):
+    """
+    Typeの実体。
+    core.type.type
+    """
+    @property
+    @abstractmethod
+    def get_generic(self) -> absType | None: ...
+
+    @property
+    @abstractmethod
+    def get_bits(self) -> int | None: ...
+
+    """
+    get_string equal __repr__
+    """
+    @property
+    @abstractmethod
+    def get_string(self) -> str: ...
+
+    @abstractmethod
+    def equal(self, other: absType) -> bool: ...
 
 
 @dataclass

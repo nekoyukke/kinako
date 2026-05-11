@@ -7,14 +7,14 @@ import src.frontend.models.stmt as _stmt
 import src.frontend.models.expr as _expr
 import src.frontend.models.literal as _literal
 import src.frontend.models.type as _type
-from src.frontend.models.base import S,P, ASTNode
+from src.core.abs_base import S,P, ASTNode
 
 
 from src.utils.error.base import KinakoRelatedInfo, KinakoHelp
 from src.utils.error.syntax import KinakoSyntaxError
 
 
-from src.core.ownership import OwnershipFlag, Ownership
+from src.core.owner.ownership import OwnershipFlag, Ownership
 
 class Parser(Generic[S,P]):
     TOKEN_TO_EFFECTS: dict[TokenType, OwnershipFlag] = {

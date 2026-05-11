@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from src.frontend.models.base import P, S
+from src.core.abs_base import P, S
 from src.frontend.models.expr import Expr
 
 T = TypeVar("T")

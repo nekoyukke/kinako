@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Generic
 
-from src.frontend.models.base import ASTNode, P, S
+from src.core.abs_base import ASTNode, P, S
 from src.frontend.models.expr import Expr, VariableNode
 from src.frontend.models.literal import StrLiteralNode
 from src.frontend.models.type import TypeNode
-from src.core.ownership import Ownership
+from src.core.owner.ownership import Ownership
 
 @dataclass(repr=False)
 class Stmt(ASTNode[S,P], Generic[S, P]):
