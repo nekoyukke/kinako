@@ -1,8 +1,9 @@
 # Kinako
 
+<img src="logo.png" alt="logo" width="120">
+
 Pythonで実装されたRustとCのハイブリッド言語！！！
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)\
 kinakoは、`C++`や`Rust`などを参考にし、`型`と`所有権`を分離することをモットーに作成されました。
 
 ~~作者があれなので構造があれかもしれません。ご了承お願いします。~~
