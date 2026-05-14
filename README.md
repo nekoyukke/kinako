@@ -47,3 +47,5 @@ fn int main() {
 つくってるひと:[ねこゆっけ](https://github.com/nekoyukke) ※つくってるひとがボケをかましまくるのでとてもめんどくさいです
 
 てつだってるひと:**なし！！！！**
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nekoyukke/kinako)こんなのがありますのでよかったら。
