@@ -1,0 +1,1 @@
+raise RuntimeError("未実装です。")
