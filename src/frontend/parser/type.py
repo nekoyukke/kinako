@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Generic
 
 from src.core.abs_base import ASTNode, P, S
-from frontend.lexer.tokentype import TokenType
+from src.frontend.lexer.tokentype import TokenType
 
 
 @dataclass(repr=False)

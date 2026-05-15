@@ -1,12 +1,12 @@
 from typing import Generic
 from typing import Callable
 
-from src.frontend.models.token import Token
-from src.frontend.models.tokentype import TokenType, NOT_GEMERIC
-import src.frontend.models.stmt as _stmt
-import src.frontend.models.expr as _expr
-import src.frontend.models.literal as _literal
-import src.frontend.models.type as _type
+from src.frontend.lexer.token import Token
+from src.frontend.lexer.tokentype import TokenType, NOT_GEMERIC
+import src.frontend.parser.stmt as _stmt
+import src.frontend.parser.expr as _expr
+import src.frontend.parser.literal as _literal
+import src.frontend.parser.type as _type
 from src.core.abs_base import S,P, ASTNode
 from src.core.value import ValueCategory
 
@@ -15,7 +15,7 @@ from src.utils.error.base import KinakoRelatedInfo, KinakoHelp
 from src.utils.error.syntax import KinakoSyntaxError
 
 
-from core.possession.possession import PossessionFlag, Possession
+from src.core.possession.possession import PossessionFlag, Possession
 
 class Parser(Generic[S,P]):
     TOKEN_TO_EFFECTS: dict[TokenType, PossessionFlag] = {

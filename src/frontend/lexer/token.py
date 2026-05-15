@@ -1,5 +1,7 @@
 from dataclasses import dataclass
-from frontend.lexer.tokentype import TokenType
+
+
+from src.frontend.lexer.tokentype import TokenType
 
 @dataclass
 class Token():
