@@ -9,6 +9,3 @@ from dataclasses import dataclass
 class Type():
     pass
 
-
-@dataclass
-class 

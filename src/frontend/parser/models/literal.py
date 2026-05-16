@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Generic, TypeVar
 
 from src.core.abs_base import P, S
-from src.frontend.parser.expr import Expr
+from src.frontend.parser.models.expr import Expr
 
 T = TypeVar("T")
 

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 
 from src.core.abs_base import absType, ASTNode, absPlace, absSymbol
+from src.core.id_base.symbol_id import SymbolId
+
 
 @dataclass
 class Symbol(absSymbol):
@@ -24,5 +26,8 @@ class Symbol(absSymbol):
 
     @property
     def get_type(self) -> absType: ...
+
+    @property
+    def get_id(self) -> SymbolId: ...
 
     def get_decl_node(self) -> 'ASTNode[Symbol, absPlace]': ... 

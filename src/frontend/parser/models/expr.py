@@ -4,7 +4,7 @@ from enum import Enum, auto
 
 from src.core.abs_base import ASTNode, P, S
 from src.frontend.lexer.tokentype import TokenType
-from src.frontend.parser.type import TypeNode
+from src.frontend.parser.models.type import TypeNode
 from src.core.value import ValueCategory
 
 @dataclass(repr=False)

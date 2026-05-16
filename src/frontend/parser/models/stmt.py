@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from typing import Generic
 
 from src.core.abs_base import ASTNode, P, S
-from src.frontend.parser.expr import Expr, VariableNode
-from src.frontend.parser.literal import StrLiteralNode
-from src.frontend.parser.type import TypeNode
+from src.frontend.parser.models.expr import Expr, VariableNode
+from src.frontend.parser.models.literal import StrLiteralNode
+from src.frontend.parser.models.type import TypeNode
 from src.core.possession.possession import Possession
 
 @dataclass(repr=False)

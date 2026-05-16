@@ -7,6 +7,10 @@ from enum import Enum
 from typing import Sequence
 
 
+from src.core.id_base.symbol_id import SymbolId
+from src.core.id_base.type_id import TypeId
+
+
 S = TypeVar("S", bound="absSymbol", covariant=True)
 P = TypeVar("P", bound="absPlace", covariant=True)
 
@@ -32,7 +36,11 @@ class absSymbol(ABC):
     def get_type(self) -> absType: ...
 
     @abstractmethod
-    def get_decl_node(self) -> ASTNode[absSymbol, absPlace]: ... 
+    def get_decl_node(self) -> ASTNode[absSymbol, absPlace]: ...
+
+    @property
+    @abstractmethod
+    def get_id(self) -> SymbolId: ...
 
 
 @dataclass(frozen=True)
@@ -76,6 +84,9 @@ class absType(ABC):
     @property
     @abstractmethod
     def get_bits(self) -> int | None: ...
+
+    @abstractmethod
+    def get_id(self) -> TypeId: ...
 
     """
     get_string equal __repr__

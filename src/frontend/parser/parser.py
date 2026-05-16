@@ -3,10 +3,10 @@ from typing import Callable
 
 from src.frontend.lexer.token import Token
 from src.frontend.lexer.tokentype import TokenType, NOT_GEMERIC
-import src.frontend.parser.stmt as _stmt
-import src.frontend.parser.expr as _expr
-import src.frontend.parser.literal as _literal
-import src.frontend.parser.type as _type
+import src.frontend.parser.models.stmt as _stmt
+import src.frontend.parser.models.expr as _expr
+import src.frontend.parser.models.literal as _literal
+import src.frontend.parser.models.type as _type
 from src.core.abs_base import S,P, ASTNode
 from src.core.value import ValueCategory
 
