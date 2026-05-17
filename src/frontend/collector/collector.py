@@ -101,7 +101,13 @@ class Collector():
         match (node):
             case stmt.LetStmt():
                 if node.name.name in self.scope.symbols:
-                    self.call_error(f"名称がかぶっています！", node, help=[KinakoHelp(f"'{node.name.name}'の名称を変更しますか？")])
+                    s_id = self.scope.symbols[node.name.name]
+                    n = self.context.symbol.decl_node[s_id]
+                    self.call_error(
+                        f"名称がかぶっています！", node,
+                        related=[KinakoRelatedInfo(f"すでに宣言された場所。", n.line, n.col, n.len)],
+                        help=[KinakoHelp(f"'{node.name.name}'の名称を変更しますか？")]
+                    )
                 if node.id is None:
                     self.call_error(f"不明なエラー！デバッグ情報:{node}, scope:{self.scope}", node)
                 symid = self.idsym()
@@ -110,6 +116,7 @@ class Collector():
                              decl_node=node.id, possession_id=posid, scope_id=self.scope.me)
                 self.context.symbol.symbol_table[symid] = sym
                 self.context.symbol.possession_table[posid] = node.kind
+                self.context.symbol.decl_node[symid] = node
                 self.scope.symbols[node.name.name] = symid
                 return
             case stmt.FunctionDefineNode():

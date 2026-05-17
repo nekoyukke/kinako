@@ -4,6 +4,7 @@ from src.core.type.type import Type
 from src.core.possession.possession import Possession
 from src.core.scope.scope import Scope
 from src.core.state.state import State
+from src.core.node.ast_base import ASTNode
 
 from src.core.id_base.symbol_id import SymbolId
 from src.core.id_base.scope_id import ScopeId
@@ -25,9 +26,10 @@ class ExprStore:
 class SymbolStore:
     """
     変化しないSymol系統
-    対象:Scope, Symbol, Possession, Type
+    対象:Scope, Symbol, Possession, Type, Decl_node
     """
     symbol_table: dict[SymbolId, Symbol] = {}
+    decl_node: dict[SymbolId, ASTNode] = {}
 
     possession_table: dict[PossessionId, Possession] = {}
     scope_table: dict[ScopeId, Scope] = {}
