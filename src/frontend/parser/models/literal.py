@@ -1,14 +1,13 @@
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from src.core.abs_base import P, S
 from src.frontend.parser.models.expr import Expr
 
 T = TypeVar("T")
 
 
 @dataclass
-class LiteralNode(Expr[S,P], Generic[S,P,T]):
+class LiteralNode(Expr, Generic[T]):
     """
     値を持つ
     """
@@ -16,7 +15,7 @@ class LiteralNode(Expr[S,P], Generic[S,P,T]):
 
 
 @dataclass
-class IntLiteralNode(LiteralNode[S,P, int], Generic[S,P]):
+class IntLiteralNode(LiteralNode[int]):
     """
     整数
     """
@@ -24,7 +23,7 @@ class IntLiteralNode(LiteralNode[S,P, int], Generic[S,P]):
 
 
 @dataclass
-class StrLiteralNode(LiteralNode[S,P, str], Generic[S,P]):
+class StrLiteralNode(LiteralNode[str]):
     """
     文字
     """
@@ -32,7 +31,7 @@ class StrLiteralNode(LiteralNode[S,P, str], Generic[S,P]):
 
 
 @dataclass
-class FloatLiteralNode(LiteralNode[S,P, float], Generic[S,P]):
+class FloatLiteralNode(LiteralNode[float]):
     """
     小数点
     """
@@ -40,7 +39,7 @@ class FloatLiteralNode(LiteralNode[S,P, float], Generic[S,P]):
 
 
 @dataclass
-class BoolLiteralNode(LiteralNode[S,P, bool], Generic[S,P]):
+class BoolLiteralNode(LiteralNode[bool]):
     """
     文字
     """

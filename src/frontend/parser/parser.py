@@ -1,4 +1,3 @@
-from typing import Generic
 from typing import Callable
 
 from src.frontend.lexer.token import Token
@@ -7,8 +6,7 @@ import src.frontend.parser.models.stmt as _stmt
 import src.frontend.parser.models.expr as _expr
 import src.frontend.parser.models.literal as _literal
 import src.frontend.parser.models.type as _type
-from src.core.abs_base import S,P, ASTNode
-from src.core.value import ValueCategory
+from src.core.node.ast_base import ASTNode
 
 
 from src.utils.error.base import KinakoRelatedInfo, KinakoHelp
@@ -17,7 +15,7 @@ from src.utils.error.syntax import KinakoSyntaxError
 
 from src.core.possession.possession import PossessionFlag, Possession
 
-class Parser(Generic[S,P]):
+class Parser():
     TOKEN_TO_EFFECTS: dict[TokenType, PossessionFlag] = {
         TokenType.LET: PossessionFlag.COPYABLE | PossessionFlag.MOVABLE | PossessionFlag.MUTABLE | PossessionFlag.BORROWABLE,
         TokenType.MUT: PossessionFlag.MOVABLE | PossessionFlag.MUTABLE | PossessionFlag.BORROWABLE,
@@ -67,10 +65,10 @@ class Parser(Generic[S,P]):
         if self.check(type):
             return self.advance()
         current = self.peek()
-        self.CallError(message, ASTNode(current.line, current.column, current.len))
+        self.CallError(message, ASTNode(current.line, current.column, current.len, None))
     
     def CallError(
-            self, message:str ,node:ASTNode[S,P],
+            self, message:str ,node:ASTNode,
             related: list[KinakoRelatedInfo] | None = None,
             help: list[KinakoHelp] | None = None
         ):
@@ -110,9 +108,9 @@ class Parser(Generic[S,P]):
     def parse(self):
         return self._Program()
     
-    def _Program(self) -> _stmt.Program[S,P]:
-        stmts: list[_stmt.Stmt[S,P]] = []
-        import_stmts: list[_stmt.ImportNode[S,P]] = []
+    def _Program(self) -> _stmt.Program:
+        stmts: list[_stmt.Stmt] = []
+        import_stmts: list[_stmt.ImportNode] = []
         while not self.is_at_end():
             stmt = self._Stmt_entry()
             if stmt is None:
@@ -122,9 +120,9 @@ class Parser(Generic[S,P]):
                 continue
             stmts.append(stmt)
             continue
-        return _stmt.Program(0,0,0,stmts, [], import_stmts)
+        return _stmt.Program(0,0,0, None,stmts, [], import_stmts)
     
-    def _Stmt_entry(self) -> None | _stmt.Stmt[S,P] | _stmt.ImportNode[S,P]:
+    def _Stmt_entry(self) -> None | _stmt.Stmt | _stmt.ImportNode:
         try:
             return self._Stmt()
         except KinakoSyntaxError: 
@@ -159,58 +157,58 @@ class Parser(Generic[S,P]):
             case _:
                 expr = self._expr_entry()
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
-                return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, expr)
+                return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, None, expr)
     
-    def grab_node(self) -> _stmt.GrabStmtNode[S,P]:
+    def grab_node(self) -> _stmt.GrabStmtNode:
         grab_tok = self.advance()
         id_token = self.consume(TokenType.ID, "'anchor'構文では識別子を入力する必要があります。")
         then_stmt = self._Stmt()
         else_stmt = None
         if self.match(TokenType.ELSE):
             else_stmt = self._Stmt()
-        return _stmt.GrabStmtNode[S,P](
-            grab_tok.line, grab_tok.column, grab_tok.len,
-            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, ValueCategory.LValue, id_token.value),
+        return _stmt.GrabStmtNode(
+            grab_tok.line, grab_tok.column, grab_tok.len, None,
+            _expr.VariableNode(id_token.line, id_token.column, id_token.len, None, None, id_token.value),
             then_stmt,
             else_stmt
         )
 
-    def hold_node(self) -> _stmt.HoldStmtNode[S,P]:
+    def hold_node(self) -> _stmt.HoldStmtNode:
         hold_tok = self.advance()
         id_token = self.consume(TokenType.ID, "'anchor'構文では識別子を入力する必要があります。")
         then_stmt = self._Stmt()
         else_stmt = None
         if self.match(TokenType.ELSE):
             else_stmt = self._Stmt()
-        return _stmt.HoldStmtNode[S,P](
-            hold_tok.line, hold_tok.column, hold_tok.len,
-            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, ValueCategory.LValue, id_token.value),
+        return _stmt.HoldStmtNode(
+            hold_tok.line, hold_tok.column, hold_tok.len, None,
+            _expr.VariableNode(id_token.line, id_token.column, id_token.len, None, None, id_token.value),
             then_stmt,
             else_stmt
         )
 
-    def anchor_node(self) -> _stmt.AnchorStmtNode[S,P]:
+    def anchor_node(self) -> _stmt.AnchorStmtNode:
         anchor_tok = self.advance()
         id_token = self.consume(TokenType.ID, "'anchor'構文では識別子を入力する必要があります。")
         then_stmt = self._Stmt()
         else_stmt = None
         if self.match(TokenType.ELSE):
             else_stmt = self._Stmt()
-        return _stmt.AnchorStmtNode[S,P](
-            anchor_tok.line, anchor_tok.column, anchor_tok.len,
-            _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, ValueCategory.LValue, id_token.value),
+        return _stmt.AnchorStmtNode(
+            anchor_tok.line, anchor_tok.column, anchor_tok.len, None,
+            _expr.VariableNode(id_token.line, id_token.column, id_token.len, None, None, id_token.value),
             then_stmt,
             else_stmt
         )
 
-    def if_node(self) -> _stmt.IfStmtNode[S,P]:
+    def if_node(self) -> _stmt.IfStmtNode:
         iftok = self.advance()
         
         # 条件と実行文
         condition = self._expr_entry()
         then_stmt = self._Stmt()
         
-        else_stmt: _stmt.Stmt[S,P] | None = None
+        else_stmt: _stmt.Stmt | None = None
 
         if self.peek().type == TokenType.ELIF:
             # elif を「if」として再帰的にパースする
@@ -219,9 +217,9 @@ class Parser(Generic[S,P]):
             self.advance()
             else_stmt = self._Stmt()
             
-        return _stmt.IfStmtNode[S,P](iftok.line, iftok.column, iftok.len, condition, then_stmt, else_stmt)
+        return _stmt.IfStmtNode(iftok.line, iftok.column, iftok.len, None, condition, then_stmt, else_stmt)
 
-    def if_node_Elif_helper(self) -> _stmt.IfStmtNode[S,P]:
+    def if_node_Elif_helper(self) -> _stmt.IfStmtNode:
         # elif トークンを消費して、中身は if と同じように処理
         iftok = self.advance()
         condition = self._expr_entry()
@@ -234,13 +232,13 @@ class Parser(Generic[S,P]):
             self.advance()
             else_stmt = self._Stmt()
             
-        return _stmt.IfStmtNode[S,P](iftok.line, iftok.column, iftok.len, condition, then_stmt, else_stmt)
+        return _stmt.IfStmtNode(iftok.line, iftok.column, iftok.len, None, condition, then_stmt, else_stmt)
     
-    def for_node(self) -> _stmt.ForStmtNode[S,P]:
+    def for_node(self) -> _stmt.ForStmtNode:
         fortok = self.advance()
         
         var_tok = self.consume(TokenType.ID, "forでは識別子が必要です")
-        var = _expr.VariableNode[S,P](var_tok.line, var_tok.column, var_tok.len, None, ValueCategory.LValue, var_tok.value)
+        var = _expr.VariableNode(var_tok.line, var_tok.column, var_tok.len, None, None, var_tok.value)
         
         # INキーワードのチェック
         self.consume(TokenType.IN, "反復変数の後にはinが必要です。")
@@ -249,29 +247,30 @@ class Parser(Generic[S,P]):
         expr = self._expr_entry()
         
         body = self._Stmt()
-        return _stmt.ForStmtNode[S,P](fortok.line, fortok.column, fortok.column, var, expr, body)
+        return _stmt.ForStmtNode(fortok.line, fortok.column, fortok.column, None, var, expr, body)
     
-    def while_node(self) -> _stmt.WhileStmtNode[S,P]:
+    def while_node(self) -> _stmt.WhileStmtNode:
         while_token = self.advance()
         condition = self._expr_entry()
         body = self._Stmt()
-        return _stmt.WhileStmtNode[S,P](while_token.line, while_token.column, while_token.len, condition, body)
+        return _stmt.WhileStmtNode(while_token.line, while_token.column, while_token.len, None, condition, body)
     
     def import_node(self):
         import_token = self.peek()
         self.advance()
         expr_import = self.consume(TokenType.STRING, "不明なリテラル")
         self.consume(TokenType.SEMI, "セミコロンがありません。")
-        return _stmt.ImportNode[S,P](
+        return _stmt.ImportNode(
             import_token.line,
             import_token.column,
             import_token.len,
-            _literal.StrLiteralNode[S,P](
+            None,
+            _literal.StrLiteralNode(
                 expr_import.line,
                 expr_import.column,
                 expr_import.len,
                 None,
-                ValueCategory.RValue,
+                None,
                 expr_import.value
             )
         )
@@ -280,10 +279,11 @@ class Parser(Generic[S,P]):
         return_token = self.advance()
         expr = self._expr_entry()
         self.consume(TokenType.SEMI, "セミコロンがありません")
-        return _stmt.ReturnStmtNode[S,P](
+        return _stmt.ReturnStmtNode(
             return_token.line,
             return_token.column,
             return_token.len,
+            None,
             expr
         )
         
@@ -293,8 +293,8 @@ class Parser(Generic[S,P]):
         types = self.type()
         id_token = self.consume(TokenType.ID, "識別子がありません。")
         self.consume(TokenType.LPAREN, "かっこ '(' がありません")
-        args:list[_expr.VariableNode[S,P]] = []
-        arg_types:list[_type.TypeNode[S,P]] = []
+        args:list[_expr.VariableNode] = []
+        arg_types:list[_type.TypeNode] = []
         arg_owns:list[Possession] = []
         if self.peek().type != TokenType.RPAREN:
             while True:
@@ -303,13 +303,13 @@ class Parser(Generic[S,P]):
                 id_tok = self.consume(TokenType.ID, "識別子が必要です")
                 if self.peek().type == TokenType.ANCHOR_BANG:
                     self.advance()
-                    args.append(_expr.VariableNode[S,P](
-                        id_tok.line, id_tok.column, id_tok.len,
-                        None, ValueCategory.LValue, id_tok.value, _expr.AccessModifier.ANCHOR, None))
+                    args.append(_expr.VariableNode(
+                        id_tok.line, id_tok.column, id_tok.len, None,
+                        None, id_tok.value, _expr.AccessModifier.ANCHOR, None))
                 else:
-                    args.append(_expr.VariableNode[S,P](
-                        id_tok.line,id_tok.column, id_tok.len,
-                        None, ValueCategory.LValue, id_tok.value, _expr.AccessModifier.NONE, None))
+                    args.append(_expr.VariableNode(
+                        id_tok.line,id_tok.column, id_tok.len, None,
+                        None, id_tok.value, _expr.AccessModifier.NONE, None))
 
                 arg_owns.append(own_ast)
                 arg_types.append(type_ast)
@@ -321,15 +321,16 @@ class Parser(Generic[S,P]):
         self.consume(TokenType.RPAREN, "かっこ ')' がありません")
         body = self._Stmt_entry()
         if body is None:
-            self.CallError("Body不明", _expr.VariableNode[S,P](
-                define_token.line, define_token.column, define_token.len,
-                None, ValueCategory.LValue, define_token.value))
+            self.CallError("Body不明", _expr.VariableNode(
+                define_token.line, define_token.column, define_token.len, None,
+                None, define_token.value))
             
-        return _stmt.FunctionDefineNode[S,P](
+        return _stmt.FunctionDefineNode(
                 define_token.line,
                 define_token.column,
                 define_token.len,
-                _expr.VariableNode[S,P](id_token.line, id_token.column, id_token.len, None, ValueCategory.LValue, id_token.value),
+                None,
+                _expr.VariableNode(id_token.line, id_token.column, id_token.len, None, None, id_token.value),
                 body,
                 args,
                 arg_types,
@@ -340,7 +341,7 @@ class Parser(Generic[S,P]):
     
     def block_node(self):
         token = self.consume(TokenType.LBRACE, "なんだよ！！！")
-        stmts: list[_stmt.Stmt[S,P]] = []
+        stmts: list[_stmt.Stmt] = []
         while (not self.is_at_end()) and self.peek().type != TokenType.RBRACE:
             stmt = self._Stmt()
             if stmt is None:  # type: ignore
@@ -353,7 +354,7 @@ class Parser(Generic[S,P]):
                 )
             stmts.append(stmt)
         self.consume(TokenType.RBRACE, "blockが閉じられていません。")
-        return _stmt.BlockNode[S,P](token.line, token.column, token.len, stmts)
+        return _stmt.BlockNode(token.line, token.column, token.len, None, stmts)
     
     def let_node_entry(self):   
         checkpoint = self.pos
@@ -369,7 +370,7 @@ class Parser(Generic[S,P]):
             
             expr = self._expr_entry()
             self.consume(TokenType.SEMI, "セミコロンがありません！")
-            return _stmt.ExprStmtNode[S,P](expr.line, expr.col, expr.len, expr)
+            return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, None, expr)
     
     def let_node(self):
         current = self.peek()
@@ -378,22 +379,22 @@ class Parser(Generic[S,P]):
         name = self.consume(TokenType.ID, "識別子がありません！！")
         isatmark = self.peek().type == TokenType.ANCHOR_BANG
 
-        variable:_expr.VariableNode[S,P]
+        variable:_expr.VariableNode
         if isatmark:
             self.advance()
-            variable = _expr.VariableNode[S,P](
-                name.line, name.column, name.len, None, ValueCategory.LValue, name.value, _expr.AccessModifier.ANCHOR, None)
+            variable = _expr.VariableNode(
+                name.line, name.column, name.len, None, None, name.value, _expr.AccessModifier.ANCHOR, None)
         else:
-            variable = _expr.VariableNode[S,P](
-                name.line, name.column, name.len, None, ValueCategory.LValue, name.value, _expr.AccessModifier.NONE, None)
+            variable = _expr.VariableNode(
+                name.line, name.column, name.len, None, None, name.value, _expr.AccessModifier.NONE, None)
         
         if self.peek().type == TokenType.SEMI:
             self.consume(TokenType.SEMI, "セミコロンがありません！")
-            return _stmt.LetStmt[S,P](current.line, current.column, current.len, Possession, types, variable, None)
+            return _stmt.LetStmt(current.line, current.column, current.len, None, Possession, types, variable, None)
         self.consume(TokenType.ASSIGN, "'='がないです。代入が完成しません")
         expr = self._expr_entry()
         self.consume(TokenType.SEMI, "セミコロンがありません！")
-        return _stmt.LetStmt[S,P](current.line, current.column, current.len, Possession, types, variable, expr)
+        return _stmt.LetStmt(current.line, current.column, current.len, None, Possession, types, variable, expr)
     
     def Possession(self) -> Possession:
         """
@@ -407,7 +408,7 @@ class Parser(Generic[S,P]):
             return Possession(flag, generic)
         return Possession(flag, None)
 
-    def type(self) -> _type.TypeNode[S,P]:
+    def type(self) -> _type.TypeNode:
         typetoken = self.peek()
         match (typetoken.type):
             case TokenType.tLIST:
@@ -415,15 +416,15 @@ class Parser(Generic[S,P]):
                 self.consume(TokenType.LBRACKET, "[がありません！")
                 element = self.type()
                 self.consume(TokenType.RBRACKET, "]がありません！")
-                return _type.ListTypeNode[S,P](typetoken.line, typetoken.column, typetoken.len, element)
+                return _type.ListTypeNode(typetoken.line, typetoken.column, typetoken.len, None, element)
             case TokenType.ID:
                 self.advance()
-                return _type.UserDefinedTypeNode[S,P](typetoken.line, typetoken.column, typetoken.len, typetoken.value)
+                return _type.UserDefinedTypeNode(typetoken.line, typetoken.column, typetoken.len, None, typetoken.value)
             case t if t in NOT_GEMERIC:
                 self.advance()
-                return _type.PrimitiveTypeNode[S,P](typetoken.line, typetoken.column, typetoken.len, typetoken.type)
+                return _type.PrimitiveTypeNode(typetoken.line, typetoken.column, typetoken.len, None, typetoken.type)
             case _:
-                self.CallError(f"不明な型トークン'{typetoken.value}'。", ASTNode[S,P](typetoken.line, typetoken.column, typetoken.len))
+                self.CallError(f"不明な型トークン'{typetoken.value}'。", ASTNode(typetoken.line, typetoken.column, typetoken.len, None))
 
 
 
@@ -440,9 +441,9 @@ class Parser(Generic[S,P]):
 
 
     def left_binary_op(
-            self, next_func: Callable[[], _expr.Expr[S, P]], token_types: list[TokenType],
-            node_factory: Callable[[Token, _expr.Expr[S, P], _expr.Expr[S, P]], _expr.Expr[S, P]]
-            ) -> _expr.Expr[S, P]:
+            self, next_func: Callable[[], _expr.Expr], token_types: list[TokenType],
+            node_factory: Callable[[Token, _expr.Expr, _expr.Expr], _expr.Expr]
+            ) -> _expr.Expr:
         node = next_func() 
 
         while self.peek().type in token_types:
@@ -456,9 +457,9 @@ class Parser(Generic[S,P]):
         return node
     
     def right_binary_op(
-            self, next_func: Callable[[], _expr.Expr[S, P]], token_types: list[TokenType],
-            node_factory: Callable[[Token, _expr.Expr[S, P], _expr.Expr[S, P]], _expr.Expr[S, P]]
-            ) -> _expr.Expr[S, P]:
+            self, next_func: Callable[[], _expr.Expr], token_types: list[TokenType],
+            node_factory: Callable[[Token, _expr.Expr, _expr.Expr], _expr.Expr]
+            ) -> _expr.Expr:
         node = next_func()
         
         if self.peek().type in token_types:
@@ -468,9 +469,9 @@ class Parser(Generic[S,P]):
         return node
     
 
-    def _make_binary(self, tok: Token, left: _expr.Expr[S, P], right: _expr.Expr[S, P]) -> _expr.Expr[S, P]:
+    def _make_binary(self, tok: Token, left: _expr.Expr, right: _expr.Expr) -> _expr.Expr:
         """算術演算・比較演算用の工場"""
-        return _expr.BinaryOperationNode[S,P](
+        return _expr.BinaryOperationNode(
             line=tok.line,
             col=tok.column,
             len=tok.len,
@@ -478,12 +479,12 @@ class Parser(Generic[S,P]):
             op=tok.type,
             left=left,
             right=right,
-            category=ValueCategory.RValue,
+            id=None,
         )
 
-    def _make_logical(self, tok: Token, left: _expr.Expr[S, P], right: _expr.Expr[S, P]) -> _expr.Expr[S, P]:
+    def _make_logical(self, tok: Token, left: _expr.Expr, right: _expr.Expr) -> _expr.Expr:
         """&& や || などの論理演算用の工場"""
-        return _expr.LogicalOperationNode[S,P](
+        return _expr.LogicalOperationNode(
             line=tok.line,
             col=tok.column,
             len=tok.len,
@@ -491,12 +492,12 @@ class Parser(Generic[S,P]):
             op=tok.type,
             left=left,
             right=right,
-            category=ValueCategory.RValue,
+            id=None,
         )
 
-    def _make_assign(self, tok: Token, left: _expr.Expr[S, P], right: _expr.Expr[S, P]) -> _expr.Expr[S, P]:
+    def _make_assign(self, tok: Token, left: _expr.Expr, right: _expr.Expr) -> _expr.Expr:
         """代入用の工場"""
-        return _expr.AssignNode[S,P](
+        return _expr.AssignNode(
             line=tok.line,
             col=tok.column,
             len=tok.len,
@@ -504,51 +505,51 @@ class Parser(Generic[S,P]):
             op=tok.type,
             left=left,
             right=right,
-            category=ValueCategory.RValue,
+            id=None,
         )
 
 
-    def _expr_entry(self) -> _expr.Expr[S,P]:
+    def _expr_entry(self) -> _expr.Expr:
         return self.assignment()
     
-    def assignment(self) -> _expr.Expr[S, P]:
+    def assignment(self) -> _expr.Expr:
         return self.right_binary_op(self.logical_or, [TokenType.ASSIGN], self._make_assign)
 
-    def logical_or(self) -> _expr.Expr[S, P]:
+    def logical_or(self) -> _expr.Expr:
         return self.left_binary_op(self.logical_and, [TokenType.LOGIC_OR], self._make_logical)
 
-    def logical_and(self) -> _expr.Expr[S, P]:
+    def logical_and(self) -> _expr.Expr:
         return self.left_binary_op(self.equality, [TokenType.LOGIC_AND], self._make_logical)
 
-    def equality(self) -> _expr.Expr[S, P]:
+    def equality(self) -> _expr.Expr:
         return self.left_binary_op(self.comparison, [TokenType.EQ, TokenType.NE], self._make_binary)
 
-    def comparison(self) -> _expr.Expr[S, P]:
+    def comparison(self) -> _expr.Expr:
         return self.left_binary_op(self.term, [
             TokenType.LABRACKET, TokenType.GE, TokenType.RABRACKET, TokenType.LE
         ], self._make_binary)
 
-    def term(self) -> _expr.Expr[S, P]:
+    def term(self) -> _expr.Expr:
         return self.left_binary_op(self.factor, [TokenType.PLUS, TokenType.MINUS], self._make_binary)
 
-    def factor(self) -> _expr.Expr[S, P]:
+    def factor(self) -> _expr.Expr:
         return self.left_binary_op(self.prefix, [TokenType.MULT, TokenType.DIV], self._make_binary)
     
-    def prefix(self) -> _expr.Expr[S, P]:
+    def prefix(self) -> _expr.Expr:
         # prefix (前置演算)
         if self.match(TokenType.MINUS, TokenType.PLUS):
             operator_token = self.previous()
             right = self.prefix() # 自分自身を再帰的に呼ぶ
-            return _expr.UnaryOperationNode[S,P](
-                operator_token.line, operator_token.column, operator_token.len,
-                None, ValueCategory.RValue, operator_token.type, right
+            return _expr.UnaryOperationNode(
+                operator_token.line, operator_token.column, operator_token.len, None,
+                None, operator_token.type, right
             )
         
         return self.postfix()
 
-    def postfix(self) -> _expr.Expr[S, P]:
+    def postfix(self) -> _expr.Expr:
         # postfix (後置演算: 関数呼び出し、配列アクセス、プロパティ)
-        node:_expr.Expr[S,P] = self.primary()
+        node:_expr.Expr = self.primary()
 
         while True:
             if self.match(TokenType.LPAREN): # 関数呼び出し a()
@@ -556,36 +557,36 @@ class Parser(Generic[S,P]):
             elif self.match(TokenType.LBRACKET): # インデックス a[0]
                 index = self._expr_entry()
                 self.consume(TokenType.RBRACKET, "']'がありません。トークン不足！")
-                node = _expr.IndexAccessNode[S,P](node.line, node.col, node.len, None, ValueCategory.LValue, index, node)
+                node = _expr.IndexAccessNode(node.line, node.col, node.len, None, None, index, node)
             elif self.match(TokenType.DOT): # プロパティアクセス a.b
                 name = self.consume(TokenType.ID, "プロパティ名が必要です。")
-                node = _expr.MemberAccessNode[S,P](node.line, node.col, node.len, None, ValueCategory.LValue, node, name.value)
+                node = _expr.MemberAccessNode(node.line, node.col, node.len, None, None, node, name.value)
             else:
                 break
         
         return node
     
-    def primary(self) -> _expr.Expr[S,P]:
+    def primary(self) -> _expr.Expr:
         current = self.peek()
         note:list[KinakoHelp] = []
         match(current.type):
             case TokenType.NUMBER:
                 self.advance()
-                return _literal.IntLiteralNode[S,P](current.line, current.column, current.len, None, ValueCategory.RValue, int(current.value))
+                return _literal.IntLiteralNode(current.line, current.column, current.len, None, None, int(current.value))
             case TokenType.DECIMAL:
                 self.advance()
-                return _literal.FloatLiteralNode[S,P](current.line, current.column, current.len, None, ValueCategory.RValue, float(current.value))
+                return _literal.FloatLiteralNode(current.line, current.column, current.len, None, None, float(current.value))
             case TokenType.ID:
                 self.advance()
                 isatmark = self.peek().type == TokenType.ANCHOR_BANG
                 if isatmark:
                     self.advance()
-                    return _expr.VariableNode[S,P](
-                        current.line, current.column, current.len, None, ValueCategory.LValue, current.value,
+                    return _expr.VariableNode(
+                        current.line, current.column, current.len, None, None, current.value,
                         _expr.AccessModifier.ANCHOR, None
                         )
-                return _expr.VariableNode[S,P](
-                        current.line, current.column, current.len, None, ValueCategory.LValue, current.value,
+                return _expr.VariableNode(
+                        current.line, current.column, current.len, None, None, current.value,
                         _expr.AccessModifier.NONE, None
                         )
             case TokenType.LPAREN:
@@ -595,7 +596,7 @@ class Parser(Generic[S,P]):
                 return expr
             case TokenType.STRING:
                 self.advance()
-                return _literal.StrLiteralNode[S,P](current.line, current.column, current.len, None, ValueCategory.RValue, current.value)
+                return _literal.StrLiteralNode(current.line, current.column, current.len, None, None, current.value)
             case TokenType.LET | TokenType.MUT | TokenType.CONST:
                 note.append(
                     KinakoHelp(
@@ -603,18 +604,18 @@ class Parser(Generic[S,P]):
                     )
                 )
                 self.CallError(f"不明なトークン{current.value}。",
-                               ASTNode[S,P](current.line, current.column, current.len), [], note)
+                               ASTNode(current.line, current.column, current.len, None), [], note)
             case _:
                 self.CallError(f"不明なトークン{current.value}。",
-                               ASTNode[S,P](current.line, current.column, current.len), [], note)
+                               ASTNode(current.line, current.column, current.len, None), [], note)
     
-    def _finish_call(self, expr:_expr.Expr[S,P]) -> _expr.Expr[S,P]:
+    def _finish_call(self, expr:_expr.Expr) -> _expr.Expr:
         # 関数呼び出し
         func = self.peek()
         self.advance()
         # a(1,2)
         #   ^
-        args: list[_expr.Expr[S,P]] = []
+        args: list[_expr.Expr] = []
         while (self.peek().type != TokenType.RPAREN):
             op = self._expr_entry()
             args.append(op)
@@ -625,4 +626,4 @@ class Parser(Generic[S,P]):
                 break
         self.consume(TokenType.RPAREN,"')'がありません！")
         end = self.peek()
-        return _expr.CallNode[S,P](func.line, func.column, end.column - func.column, None, ValueCategory.LValue, expr, args)
+        return _expr.CallNode(func.line, func.column, end.column - func.column, None, None, expr, args)

@@ -1,18 +1,17 @@
 from dataclasses import dataclass
-from typing import Generic
 
-from src.core.abs_base import ASTNode, P, S
+from src.core.node.ast_base import ASTNode
 from src.frontend.lexer.tokentype import TokenType
 
 
 @dataclass(repr=False)
-class TypeNode(ASTNode[S, P], Generic[S, P]):
+class TypeNode(ASTNode):
     """型表記の基底"""
     pass
 
 
 @dataclass(repr=False)
-class PrimitiveTypeNode(TypeNode[S, P], Generic[S, P]):
+class PrimitiveTypeNode(TypeNode):
     """
     組み込み
     """
@@ -21,24 +20,24 @@ class PrimitiveTypeNode(TypeNode[S, P], Generic[S, P]):
 
 
 @dataclass(repr=False)
-class UserDefinedTypeNode(TypeNode[S, P], Generic[S, P]):
+class UserDefinedTypeNode(TypeNode):
     """
     自作クラス
     """
     name: str
 
 @dataclass(repr=False)
-class ArrayTypeNode(TypeNode[S, P], Generic[S, P]):
+class ArrayTypeNode(TypeNode):
     """
     あーりー
     """
-    element_type: TypeNode[S, P]
+    element_type: TypeNode
     size: int
 
 
 @dataclass(repr=False)
-class ListTypeNode(TypeNode[S, P], Generic[S,P]):
+class ListTypeNode(TypeNode):
     """
     りすと
     """
-    element_type: TypeNode[S, P]
+    element_type: TypeNode

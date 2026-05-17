@@ -1,112 +1,111 @@
 from dataclasses import dataclass
-from typing import Generic
 
-from src.core.abs_base import ASTNode, P, S
+from src.core.node.ast_base import ASTNode
 from src.frontend.parser.models.expr import Expr, VariableNode
 from src.frontend.parser.models.literal import StrLiteralNode
 from src.frontend.parser.models.type import TypeNode
 from src.core.possession.possession import Possession
 
 @dataclass(repr=False)
-class Stmt(ASTNode[S,P], Generic[S, P]):
+class Stmt(ASTNode):
     pass
 
 
 @dataclass(repr=False)
-class LetStmt(Stmt[S,P], Generic[S, P]):
+class LetStmt(Stmt):
     """
     変数
     """
     kind: Possession
-    type: TypeNode[S, P]
-    name: VariableNode[S, P]
-    right: Expr[S, P] | None
+    type: TypeNode
+    name: VariableNode
+    right: Expr | None
 
 
 @dataclass(repr=False)
-class ExprStmtNode(Stmt[S,P], Generic[S, P]):
+class ExprStmtNode(Stmt):
     """
     expr
     """
-    expr: Expr[S, P]
+    expr: Expr
 
 
 @dataclass(repr=False)
-class BlockNode(Stmt[S,P], Generic[S, P]):
+class BlockNode(Stmt):
     """
     blockたん
     """
-    stmts: list[Stmt[S, P]]
+    stmts: list[Stmt]
 
 
 @dataclass(repr=False)
-class IfStmtNode(Stmt[S,P], Generic[S, P]):
+class IfStmtNode(Stmt):
     """
     condとか
     """
-    cond: Expr[S,P]
-    then_stmt: Stmt[S,P]
-    else_stmt: Stmt[S,P] | None
+    cond: Expr
+    then_stmt: Stmt
+    else_stmt: Stmt | None
 
 
 @dataclass(repr=False)
-class WhileStmtNode(Stmt[S,P], Generic[S, P]):
-    cond: Expr[S,P]
-    body: Stmt[S,P]
+class WhileStmtNode(Stmt):
+    cond: Expr
+    body: Stmt
 
 
 @dataclass(repr=False)
-class ForStmtNode(Stmt[S,P], Generic[S, P]):
-    var: VariableNode[S,P]
-    expr: Expr[S,P]
-    body: Stmt[S,P]
+class ForStmtNode(Stmt):
+    var: VariableNode
+    expr: Expr
+    body: Stmt
 
 
 @dataclass(repr=False)
-class FunctionDefineNode(Stmt[S,P], Generic[S, P]):
-    name: VariableNode[S,P]
-    body: Stmt[S,P]
-    args: list[VariableNode[S,P]]
-    arg_types: list[TypeNode[S, P]]
+class FunctionDefineNode(Stmt):
+    name: VariableNode
+    body: Stmt
+    args: list[VariableNode]
+    arg_types: list[TypeNode]
     arg_Possession: list[Possession]
-    return_type: TypeNode[S, P]
+    return_type: TypeNode
     return_Possession: Possession
 
 
 @dataclass(repr=False)
-class ReturnStmtNode(Stmt[S,P], Generic[S, P]):
-    expr: Expr[S,P]
+class ReturnStmtNode(Stmt):
+    expr: Expr
 
 
 @dataclass(repr=False)
-class ImportNode(Stmt[S,P], Generic[S, P]):
-    From: StrLiteralNode[S,P]
+class ImportNode(Stmt):
+    From: StrLiteralNode
 
 
 @dataclass(repr=False)
-class Program(Stmt[S,P], Generic[S, P]):
-    blocks: list[Stmt[S,P]]
-    imports: list['Program[S,P]']
-    import_stmt: list[ImportNode[S,P]]
+class Program(Stmt):
+    blocks: list[Stmt]
+    imports: list['Program']
+    import_stmt: list[ImportNode]
 
 
 @dataclass(repr=False)
-class AnchorStmtNode(Stmt[S,P], Generic[S,P]):
-    variable: VariableNode[S,P]
-    then_stmt: Stmt[S,P]
-    else_stmt: Stmt[S,P] | None
+class AnchorStmtNode(Stmt):
+    variable: VariableNode
+    then_stmt: Stmt
+    else_stmt: Stmt | None
 
 
 @dataclass(repr=False)
-class GrabStmtNode(Stmt[S,P], Generic[S,P]):
-    variable: VariableNode[S,P]
-    then_stmt: Stmt[S,P]
-    else_stmt: Stmt[S,P] | None
+class GrabStmtNode(Stmt):
+    variable: VariableNode
+    then_stmt: Stmt
+    else_stmt: Stmt | None
 
 
 @dataclass(repr=False)
-class HoldStmtNode(Stmt[S,P], Generic[S,P]):
-    variable: VariableNode[S,P]
-    then_stmt: Stmt[S,P]
-    else_stmt: Stmt[S,P] | None
+class HoldStmtNode(Stmt):
+    variable: VariableNode
+    then_stmt: Stmt
+    else_stmt: Stmt | None
 

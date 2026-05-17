@@ -1,112 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
-from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Any, cast
+from typing import Any, cast
 from enum import Enum
-from typing import Sequence
 
+from src.core.id_base.node_id import NodeId
 
-from src.core.id_base.symbol_id import SymbolId
-from src.core.id_base.type_id import TypeId
-
-
-S = TypeVar("S", bound="absSymbol", covariant=True)
-P = TypeVar("P", bound="absPlace", covariant=True)
-
-
-
-
-class absSymbol(ABC):
-    """
-    Symbol実体
-    src.core.symbol.symbolから継承
-    """
-
-    @property
-    @abstractmethod
-    def get_fq_name(self) -> str: ...
-
-    @property
-    @abstractmethod
-    def get_name(self) -> str: ...
-
-    @property
-    @abstractmethod
-    def get_type(self) -> absType: ...
-
-    @abstractmethod
-    def get_decl_node(self) -> ASTNode[absSymbol, absPlace]: ...
-
-    @property
-    @abstractmethod
-    def get_id(self) -> SymbolId: ...
-
-
-@dataclass(frozen=True)
-class absProjection(ABC):
-    """
-    パスの履歴
-    core.place.projection
-    """
-    @property
-    @abstractmethod
-    def get_main(self) -> absSymbol: ...
-
-    @property
-    @abstractmethod
-    def get_type(self) -> Enum: ...
-
-
-class absPlace(ABC):
-    """
-    Placeの実体。
-    core.place.Place
-    """
-    @property
-    @abstractmethod
-    def get_main(self) -> absSymbol: ...
-    
-    @property
-    @abstractmethod
-    def get_projections(self) -> Sequence[absProjection]: ...
-
-
-class absType(ABC):
-    """
-    Typeの実体。
-    core.type.type
-    """
-    @property
-    @abstractmethod
-    def get_generic(self) -> absType | None: ...
-
-    @property
-    @abstractmethod
-    def get_bits(self) -> int | None: ...
-
-    @abstractmethod
-    def get_id(self) -> TypeId: ...
-
-    """
-    get_string equal __repr__
-    """
-    @property
-    @abstractmethod
-    def get_string(self) -> str: ...
-
-    @abstractmethod
-    def equal(self, other: absType) -> bool: ...
-
-
+        
 @dataclass
-class ASTNode(Generic[S, P]):
+class ASTNode():
     """
     ASTノードの基底
     """
     line: int
     col: int
     len: int
+
+    id: NodeId | None
 
     def _format_repr(self, indent: int = 0) -> str:
         """再帰的に整形されたAST表現を生成する"""
