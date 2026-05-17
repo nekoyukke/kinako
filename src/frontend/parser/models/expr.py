@@ -5,7 +5,6 @@ from src.core.node.ast_base import ASTNode
 from src.frontend.lexer.tokentype import TokenType
 from src.frontend.parser.models.type import TypeNode
 
-from src.core.symbol.symbol import Symbol
 from src.core.place.place import Place
 
 @dataclass(repr=False)
@@ -86,4 +85,3 @@ class VariableNode(Expr):
     """
     name: str
     modifier: AccessModifier = AccessModifier.NONE
-    Symbol: Symbol | None = None

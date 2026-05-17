@@ -6,5 +6,5 @@ from src.core.id_base.scope_id import ScopeId
 @dataclass
 class Scope():
     me: ScopeId
-    symbols: list[SymbolId]
+    symbols: dict[str, SymbolId]
     parent: ScopeId | None

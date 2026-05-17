@@ -19,7 +19,6 @@ class Symbol():
     name: str
 
     decl_node: NodeId
-    
-    type_id: TypeId
     possession_id: PossessionId
+    type_id: TypeId | None = None
     scope_id: ScopeId
