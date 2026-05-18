@@ -96,6 +96,28 @@ class Collector():
         return f"{self.get_scope(self.context.symbol.scope_table[scope.parent])}.{scope.me}"
 
 
+    def _visit_fn_args(self, node:stmt.FunctionDefineNode):
+        for i in range(len(node.arg_Possession)-1):
+            if node.args[i].name in self.scope.symbols:
+                s_id = self.scope.symbols[node.args[i].name]
+                n = self.context.symbol.decl_node[s_id]
+                self.call_error(
+                    f"名称がかぶっています！", node.args[i],
+                    related=[KinakoRelatedInfo(f"すでに宣言された場所。", n.line, n.col, n.len)],
+                    help=[KinakoHelp(f"'{node.args[i].name}'の名称を変更しますか？")]
+                )
+            id = node.args[i].id
+            if id is None:
+                self.call_error(f"不明なエラー！デバッグ情報:{node.args[i]}, scope:{self.scope}", node.args[i])
+            symid = self.idsym()
+            posid = self.idpos()
+            sym = Symbol(id=symid, fq_name=self.get_fq(node.args[i].name), name=node.args[i].name,
+                         decl_node=id, possession_id=posid, scope_id=self.scope.me)
+            self.context.symbol.symbol_table[symid] = sym
+            self.context.symbol.possession_table[posid] = node.arg_Possession[i]
+            self.context.symbol.decl_node[symid] = node.args[i]
+            self.scope.symbols[node.args[i].name] = symid
+
 
     def _visit_stmt(self, node:stmt.Stmt):
         match (node):
@@ -121,7 +143,34 @@ class Collector():
                 return
             case stmt.FunctionDefineNode():
                 
+                if node.name.name in self.scope.symbols:
+                    s_id = self.scope.symbols[node.name.name]
+                    n = self.context.symbol.decl_node[s_id]
+                    self.call_error(
+                        f"名称がかぶっています！", node,
+                        related=[KinakoRelatedInfo(f"すでに宣言された場所。", n.line, n.col, n.len)],
+                        help=[KinakoHelp(f"'{node.name.name}'の名称を変更しますか？")]
+                    )
+                if node.id is None:
+                    self.call_error(f"不明なエラー！デバッグ情報:{node}, scope:{self.scope}", node)
+                symid = self.idsym()
+                posid = self.idpos()
+                sym = Symbol(id=symid, fq_name=self.get_fq(node.name.name), name=node.name.name,
+                             decl_node=node.id, possession_id=posid, scope_id=self.scope.me)
+                self.context.symbol.symbol_table[symid] = sym
+                self.context.symbol.possession_table[posid] = node.return_Possession
+                self.context.symbol.decl_node[symid] = node
+                self.scope.symbols[node.name.name] = symid
+
+                if isinstance(node.body, stmt.BlockNode):
+                    with self.with_scope():
+                        self._visit_fn_args(node)
+                        for n in node.body.stmts:
+                            self._visit_try_stmt(n)
+                    return
+
                 with self.with_scope():
+                    self._visit_fn_args(node)
                     self._visit_try_stmt(node.body)
                 return
             

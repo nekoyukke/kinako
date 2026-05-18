@@ -24,6 +24,32 @@ let int a = 1;
 }
 """
 
+## OK
+source3 =\
+"""
+
+fn let int add(let int a, let int b) {
+    return a + b;
+}
+
+fn let int main() {
+    return 0;
+}
+"""
+
+source4 =\
+"""
+
+fn let int add(let int a, let int b) {
+    let int a = 1;
+    return a + b;
+}
+
+fn let int main() {
+    return 0;
+}
+"""
+
 def check(source:str):
     lex = Lexer(source)
     pas = Parser(lex.tokenize(), source)
@@ -40,3 +66,5 @@ def check(source:str):
 
 check(source1)
 check(source2)
+check(source3)
+check(source4)
