@@ -49,6 +49,12 @@ class Collector():
             raise err
         return self.context.symbol.scope_table[self.scope.parent]
     
+    @contextmanager
+    def with_scope(self):
+        self.scope = self.new_scope()
+        yield
+        self.scope = self.del_scope()
+    
     def call_error(self, message:str, node:ASTNode, related:list[KinakoRelatedInfo]=[], help:list[KinakoHelp]=[]):
         err = KinakoCollectError(message, node.line, node.col, self.source, node.len, related, help)
         self.error.append(err)
@@ -81,11 +87,6 @@ class Collector():
         except KinakoCollectError:
             return
     
-    @contextmanager
-    def with_scope(self):
-        self.scope = self.new_scope()
-        yield
-        self.scope = self.del_scope()
 
     def get_fq(self, name:str):
         return f"{self.get_scope(self.scope)}.{name}"

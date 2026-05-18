@@ -15,7 +15,7 @@ from src.core.id_base.type_id import TypeId
 class ExprStore:
     """
     変化するExprのみ。
-    対象: type, 2symbol, state,
+    対象: type, nid2symbol, state,
     """
     type_table: dict[NodeId, Type] = {}
     symbol_ref_table: dict[NodeId, SymbolId] = {}
