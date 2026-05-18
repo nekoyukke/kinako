@@ -10,7 +10,7 @@ from src.core.node.ast_base import ASTNode
 
 from src.core.id_base.node_id import NodeId
 
-from src.utils.error.base import KinakoRelatedInfo, KinakoHelp
+from src.utils.error.base import KinakoRelatedInfo, KinakoHelp, KinakoBaseError
 from src.utils.error.syntax import KinakoSyntaxError
 
 
@@ -27,7 +27,7 @@ class Parser():
         self.tokens: list[Token] = tokens
         self.source: str = source
         self.pos = 0
-        self.error: list[KinakoSyntaxError] = []
+        self.error: list[KinakoBaseError] = []
         self.id = 0
     
     def peek(self) -> Token:

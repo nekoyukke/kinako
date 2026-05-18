@@ -58,7 +58,7 @@ class KinakoBaseError(Exception):
 
         return out
 
-    def __str__(self) -> str:
+    def __str__(self, is_tb:bool = True) -> str:
         tb = self.format_file_only()
         lines = self.source.splitlines()
         total = len(lines)
@@ -114,9 +114,18 @@ class KinakoBaseError(Exception):
         for h in self.help:
             help_text += f"\n{self.GREEN}help:{self.RESET} {self.BG_GREEN}{h.message}{self.RESET}"
 
+        if is_tb:
+            return (
+                f"{self.WHITE}\nTraceback (most recent call last):\n"
+                f"  {tb}\n"
+                f'  File "<source>", line {self.line}\n'
+                + "\n".join(snippet)
+                + f"\n\n{self.RED}{self.name}: {self.message}{self.RESET}\n"
+                + related_text
+                + help_text
+            )
         return (
             f"{self.WHITE}\nTraceback (most recent call last):\n"
-            f"  {tb}\n"
             f'  File "<source>", line {self.line}\n'
             + "\n".join(snippet)
             + f"\n\n{self.RED}{self.name}: {self.message}{self.RESET}\n"
