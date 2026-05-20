@@ -6,6 +6,7 @@ from src.core.id_base.possession_id import PossessionId
 
 from src.core.context.context import CompilationContext
 from src.core.symbol.symbol import Symbol
+from src.core.possession.possession import Possession, PossessionFlag
 
 
 import src.frontend.parser.models.stmt as stmt
@@ -183,6 +184,26 @@ class Collector():
                         self._visit_try_stmt(node.else_stmt)
                 return
             case stmt.ForStmtNode():
+                if isinstance(node.body, stmt.BlockNode):
+                    with self.with_scope():
+                        if node.id is None:
+                            self.call_error(f"不明なエラー！デバッグ情報:{node}, scope:{self.scope}", node)
+                        symid = self.idsym()
+                        posid = self.idpos()
+                        sym = Symbol(id=symid, fq_name=self.get_fq(node.var.name), name=node.var.name,
+                                     decl_node=node.id, possession_id=posid, scope_id=self.scope.me)
+                        self.context.symbol.symbol_table[symid] = sym
+                        self.context.symbol.possession_table[posid] =\
+                                Possession(
+                                    flag=PossessionFlag.NONE,
+                                    generic=None
+                                )
+                        self.context.symbol.decl_node[symid] = node
+                        self.scope.symbols[node.var.name] = symid
+                        for n in node.body.stmts:
+                            self._visit_try_stmt(n)
+                    return
+
                 with self.with_scope():
                     self._visit_try_stmt(node.body)
                 return

@@ -94,3 +94,6 @@ class ASTNode():
     
     def __repr__(self) -> str:
         return self._format_repr(indent=0)
+    
+    def get_child(self) -> list[ASTNode]:
+        return []

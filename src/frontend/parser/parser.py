@@ -567,7 +567,8 @@ class Parser():
                 node = _expr.IndexAccessNode(node.line, node.col, node.len, self.new_id(), None, index, node)
             elif self.match(TokenType.DOT): # プロパティアクセス a.b
                 name = self.consume(TokenType.ID, "プロパティ名が必要です。")
-                node = _expr.MemberAccessNode(node.line, node.col, node.len, self.new_id(), None, node, name.value)
+                node = _expr.MemberAccessNode(node.line, node.col, node.len, self.new_id(), None, node,
+                                              _expr.VariableNode(name.line, name.column, name.len, None, None, name.value))
             else:
                 break
         
