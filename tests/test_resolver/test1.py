@@ -58,6 +58,13 @@ let int foo = 1;
 }
 """
 
+## ダメ
+source5 =\
+"""
+foo = 1;
+let int foo = 1;
+"""
+
 
 def check(source:str):
     lex = Lexer(source)
@@ -78,3 +85,4 @@ check(source1)
 check(source2)
 check(source3)
 check(source4)
+check(source5)

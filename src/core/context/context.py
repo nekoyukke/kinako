@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 from src.core.symbol.symbol import Symbol
 from src.core.type.type import Type

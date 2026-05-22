@@ -12,6 +12,12 @@ from src.frontend.parser.models import stmt
 from src.frontend.parser.models import expr
 import src.frontend.parser.models.type as ntype
 
+from src.frontend.lexer.tokentype import TokenType
+
+import src.core.type.type as ttype
+import src.core.type.generic as tgeneric
+import src.core.type.leaf as tleaf
+
 class TypeChecker():
     def __init__(self, program: stmt.Program, source:str, context:CompilationContext) -> None:
         self.program = program
@@ -44,7 +50,7 @@ class TypeChecker():
             sym = self.context.symbol.symbol_table[symid]
             match node:
                 case stmt.LetStmt():
-                    node.type
+                    self.ntype2type(node.type)
                 case stmt.FunctionDefineNode():
                     pass
                 case _:
@@ -53,9 +59,54 @@ class TypeChecker():
             self.context.symbol.type_table
     
 
-    def ntype2type(self, ntyp:ntype.TypeNode):
-        
+    def ntype2type(self, ntyp:ntype.TypeNode) -> ttype.Type:
+        match ntyp:
+            case ntype.PrimitiveTypeNode():
+                # non-generic
+                return self.tok2type(ntyp)
+            case ntype.ListTypeNode():
+                return tgeneric.ListType(self.ntype2type(ntyp.element_type))
+            case ntype.ArrayTypeNode():
+                return tgeneric.ArrayType(self.ntype2type(ntyp.element_type), ntyp.size)
+            case ntype.UserDefinedTypeNode():
+                raise
+            case _:
+                self.call_error("不明なノード", ntyp)
 
+    def tok2type(self, n:ntype.PrimitiveTypeNode) -> ttype.Type:
+        match n.type_type:
+            case TokenType.tINT8 | TokenType.tCHAR:
+                return tleaf.IntType(8, True)
+            case TokenType.tINT16 | TokenType.tSHORT:
+                return tleaf.IntType(16, True)
+            case TokenType.tINT32 | TokenType.tINT:
+                return tleaf.IntType(32, True)
+            case TokenType.tINT64 | TokenType.tLONG:
+                return tleaf.IntType(64, True)
+            case TokenType.tINT128:
+                return tleaf.IntType(128, True)
+            case TokenType.tUINT8:
+                return tleaf.IntType(8, False)
+            case TokenType.tUINT16:
+                return tleaf.IntType(16, False)
+            case TokenType.tUINT32:
+                return tleaf.IntType(32, False)
+            case TokenType.tUINT64:
+                return tleaf.IntType(64, False)
+            case TokenType.tUINT128:
+                return tleaf.IntType(128, False)
+            case TokenType.tFLOAT | TokenType.tFLOAT32:
+                return tleaf.FloatType(32)
+            case TokenType.tDOUBLE | TokenType.tFLOAT64:
+                return tleaf.FloatType(64)
+            case TokenType.tBOOL:
+                return tleaf.BoolType()
+            case TokenType.tAUTO:
+                return tleaf.InferType()
+            case TokenType.tANY:
+                return tleaf.Any()
+            case _:
+                self.call_error(f"不明なリテラル'{n.type_type.name}'", n)
     
     def _visit_program(self):
         for s in self.program.blocks:

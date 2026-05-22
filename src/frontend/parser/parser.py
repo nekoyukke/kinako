@@ -290,7 +290,7 @@ class Parser():
             return_token.line,
             return_token.column,
             return_token.len,
-             self.new_id(), None,
+            self.new_id(), None,
             expr
         )
         
@@ -426,7 +426,7 @@ class Parser():
                 return _type.ListTypeNode(typetoken.line, typetoken.column, typetoken.len,  self.new_id(), None, element)
             case TokenType.ID:
                 self.advance()
-                return _type.UserDefinedTypeNode(typetoken.line, typetoken.column, typetoken.len,  self.new_id(), None, typetoken.value)
+                return _type.UserDefinedTypeNode(typetoken.line, typetoken.column, typetoken.len,  self.new_id(), None, typetoken.value, None)
             case t if t in NOT_GEMERIC:
                 self.advance()
                 return _type.PrimitiveTypeNode(typetoken.line, typetoken.column, typetoken.len,  self.new_id(), None, typetoken.type)

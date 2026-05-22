@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from src.core.node.ast_base import ASTNode
@@ -25,7 +27,7 @@ class UserDefinedTypeNode(TypeNode):
     自作クラス
     """
     name: str
-    sym: SymbolId
+    sym: SymbolId | None
 
 @dataclass(repr=False)
 class ArrayTypeNode(TypeNode):
