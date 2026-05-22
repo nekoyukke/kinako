@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from src.core.node.ast_base import ASTNode
 from src.frontend.lexer.tokentype import TokenType
-
+from src.core.id_base.symbol_id import SymbolId
 
 @dataclass(repr=False)
 class TypeNode(ASTNode):
@@ -25,6 +25,7 @@ class UserDefinedTypeNode(TypeNode):
     自作クラス
     """
     name: str
+    sym: SymbolId
 
 @dataclass(repr=False)
 class ArrayTypeNode(TypeNode):

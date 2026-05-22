@@ -39,6 +39,8 @@ class Lexer():
             match (kind):
                 case TokenType.SKIP:
                     continue
+                case TokenType.COMMENT:
+                    continue
                 case _:
                     # Token生成
                     tokens.append(Token(kind, value, line, col, len(value)))

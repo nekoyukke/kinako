@@ -2,6 +2,8 @@ from enum import Enum
 
 class TokenType(Enum):
     # 演算子
+    COMMENT = r'//[^\n]*'
+    
     DOT = r'\.'
     DOUBLE_DOT = r'\.\.'
     ARROW = r'->'
@@ -107,7 +109,7 @@ class TokenType(Enum):
     STRING = r'"(\\.|[^"\\])*"'
     NUMBER  = r'\d+'
     ID = r'[a-zA-Z_][a-zA-Z0-9_]*'
-    COMMENT = r'//.+'
+
 
     # 特殊
     EOF = ""

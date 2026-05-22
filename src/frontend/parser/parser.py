@@ -67,7 +67,7 @@ class Parser():
         if self.check(type):
             return self.advance()
         current = self.peek()
-        self.CallError(message, ASTNode(current.line, current.column, current.len, self.new_id()))
+        self.CallError(message, ASTNode(current.line, current.column, current.len,  self.new_id(), None,))
     
     def new_id(self) -> NodeId:
         id = self.id
@@ -127,7 +127,7 @@ class Parser():
                 continue
             stmts.append(stmt)
             continue
-        return _stmt.Program(0,0,0, None,stmts, [], import_stmts)
+        return _stmt.Program(0,0,0,  self.new_id(), None,stmts, [], import_stmts)
     
     def _Stmt_entry(self) -> None | _stmt.Stmt | _stmt.ImportNode:
         try:
@@ -164,7 +164,7 @@ class Parser():
             case _:
                 expr = self._expr_entry()
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
-                return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, self.new_id(), expr)
+                return _stmt.ExprStmtNode(expr.line, expr.col, expr.len,  self.new_id(), None, expr)
     
     def grab_node(self) -> _stmt.GrabStmtNode:
         grab_tok = self.advance()
@@ -174,8 +174,8 @@ class Parser():
         if self.match(TokenType.ELSE):
             else_stmt = self._Stmt()
         return _stmt.GrabStmtNode(
-            grab_tok.line, grab_tok.column, grab_tok.len, self.new_id(),
-            _expr.VariableNode(id_token.line, id_token.column, id_token.len, self.new_id(), None, id_token.value),
+            grab_tok.line, grab_tok.column, grab_tok.len,  self.new_id(), None,
+            _expr.VariableNode(id_token.line, id_token.column, id_token.len,  self.new_id(), None, None, id_token.value),
             then_stmt,
             else_stmt
         )
@@ -188,8 +188,8 @@ class Parser():
         if self.match(TokenType.ELSE):
             else_stmt = self._Stmt()
         return _stmt.HoldStmtNode(
-            hold_tok.line, hold_tok.column, hold_tok.len, self.new_id(),
-            _expr.VariableNode(id_token.line, id_token.column, id_token.len, self.new_id(), None, id_token.value),
+            hold_tok.line, hold_tok.column, hold_tok.len,  self.new_id(), None,
+            _expr.VariableNode(id_token.line, id_token.column, id_token.len,  self.new_id(), None, None, id_token.value),
             then_stmt,
             else_stmt
         )
@@ -202,8 +202,8 @@ class Parser():
         if self.match(TokenType.ELSE):
             else_stmt = self._Stmt()
         return _stmt.AnchorStmtNode(
-            anchor_tok.line, anchor_tok.column, anchor_tok.len, self.new_id(),
-            _expr.VariableNode(id_token.line, id_token.column, id_token.len, self.new_id(), None, id_token.value),
+            anchor_tok.line, anchor_tok.column, anchor_tok.len,  self.new_id(), None,
+            _expr.VariableNode(id_token.line, id_token.column, id_token.len,  self.new_id(), None, None, id_token.value),
             then_stmt,
             else_stmt
         )
@@ -224,7 +224,7 @@ class Parser():
             self.advance()
             else_stmt = self._Stmt()
             
-        return _stmt.IfStmtNode(iftok.line, iftok.column, iftok.len, self.new_id(), condition, then_stmt, else_stmt)
+        return _stmt.IfStmtNode(iftok.line, iftok.column, iftok.len,  self.new_id(), None, condition, then_stmt, else_stmt)
 
     def if_node_Elif_helper(self) -> _stmt.IfStmtNode:
         # elif トークンを消費して、中身は if と同じように処理
@@ -239,13 +239,13 @@ class Parser():
             self.advance()
             else_stmt = self._Stmt()
             
-        return _stmt.IfStmtNode(iftok.line, iftok.column, iftok.len, self.new_id(), condition, then_stmt, else_stmt)
+        return _stmt.IfStmtNode(iftok.line, iftok.column, iftok.len,  self.new_id(), None, condition, then_stmt, else_stmt)
     
     def for_node(self) -> _stmt.ForStmtNode:
         fortok = self.advance()
         
         var_tok = self.consume(TokenType.ID, "forでは識別子が必要です")
-        var = _expr.VariableNode(var_tok.line, var_tok.column, var_tok.len, self.new_id(), None, var_tok.value)
+        var = _expr.VariableNode(var_tok.line, var_tok.column, var_tok.len,  self.new_id(), None, None, var_tok.value)
         
         # INキーワードのチェック
         self.consume(TokenType.IN, "反復変数の後にはinが必要です。")
@@ -254,13 +254,13 @@ class Parser():
         expr = self._expr_entry()
         
         body = self._Stmt()
-        return _stmt.ForStmtNode(fortok.line, fortok.column, fortok.len, self.new_id(), var, expr, body)
+        return _stmt.ForStmtNode(fortok.line, fortok.column, fortok.len,  self.new_id(), None, var, expr, body)
     
     def while_node(self) -> _stmt.WhileStmtNode:
         while_token = self.advance()
         condition = self._expr_entry()
         body = self._Stmt()
-        return _stmt.WhileStmtNode(while_token.line, while_token.column, while_token.len, self.new_id(), condition, body)
+        return _stmt.WhileStmtNode(while_token.line, while_token.column, while_token.len,  self.new_id(), None, condition, body)
     
     def import_node(self):
         import_token = self.peek()
@@ -271,12 +271,12 @@ class Parser():
             import_token.line,
             import_token.column,
             import_token.len,
-            self.new_id(),
+             self.new_id(), None,
             _literal.StrLiteralNode(
                 expr_import.line,
                 expr_import.column,
                 expr_import.len,
-                self.new_id(),
+                 self.new_id(), None,
                 None,
                 expr_import.value
             )
@@ -290,7 +290,7 @@ class Parser():
             return_token.line,
             return_token.column,
             return_token.len,
-            self.new_id(),
+             self.new_id(), None,
             expr
         )
         
@@ -311,11 +311,11 @@ class Parser():
                 if self.peek().type == TokenType.ANCHOR_BANG:
                     self.advance()
                     args.append(_expr.VariableNode(
-                        id_tok.line, id_tok.column, id_tok.len, self.new_id(),
+                        id_tok.line, id_tok.column, id_tok.len,  self.new_id(), None,
                         None, id_tok.value, _expr.AccessModifier.ANCHOR))
                 else:
                     args.append(_expr.VariableNode(
-                        id_tok.line,id_tok.column, id_tok.len, self.new_id(),
+                        id_tok.line,id_tok.column, id_tok.len,  self.new_id(), None,
                         None, id_tok.value, _expr.AccessModifier.NONE))
 
                 arg_owns.append(own_ast)
@@ -329,15 +329,15 @@ class Parser():
         body = self._Stmt_entry()
         if body is None:
             self.CallError("Body不明", _expr.VariableNode(
-                define_token.line, define_token.column, define_token.len, self.new_id(),
+                define_token.line, define_token.column, define_token.len,  self.new_id(), None,
                 None, define_token.value))
             
         return _stmt.FunctionDefineNode(
                 define_token.line,
                 define_token.column,
                 define_token.len,
-                self.new_id(),
-                _expr.VariableNode(id_token.line, id_token.column, id_token.len, self.new_id(), None, id_token.value),
+                 self.new_id(), None,
+                _expr.VariableNode(id_token.line, id_token.column, id_token.len,  self.new_id(), None, None, id_token.value),
                 body,
                 args,
                 arg_types,
@@ -361,7 +361,7 @@ class Parser():
                 )
             stmts.append(stmt)
         self.consume(TokenType.RBRACE, "blockが閉じられていません。")
-        return _stmt.BlockNode(token.line, token.column, token.len, self.new_id(), stmts)
+        return _stmt.BlockNode(token.line, token.column, token.len,  self.new_id(), None, stmts)
     
     def let_node_entry(self):   
         checkpoint = self.pos
@@ -377,7 +377,7 @@ class Parser():
             
             expr = self._expr_entry()
             self.consume(TokenType.SEMI, "セミコロンがありません！")
-            return _stmt.ExprStmtNode(expr.line, expr.col, expr.len, self.new_id(), expr)
+            return _stmt.ExprStmtNode(expr.line, expr.col, expr.len,  self.new_id(), None, expr)
     
     def let_node(self):
         current = self.peek()
@@ -390,18 +390,18 @@ class Parser():
         if isatmark:
             self.advance()
             variable = _expr.VariableNode(
-                name.line, name.column, name.len, self.new_id(), None, name.value, _expr.AccessModifier.ANCHOR)
+                name.line, name.column, name.len,  self.new_id(), None, None, name.value, _expr.AccessModifier.ANCHOR)
         else:
             variable = _expr.VariableNode(
-                name.line, name.column, name.len, self.new_id(), None, name.value, _expr.AccessModifier.NONE)
+                name.line, name.column, name.len,  self.new_id(), None, None, name.value, _expr.AccessModifier.NONE)
         
         if self.peek().type == TokenType.SEMI:
             self.consume(TokenType.SEMI, "セミコロンがありません！")
-            return _stmt.LetStmt(current.line, current.column, current.len, self.new_id(), Possession, types, variable, None)
+            return _stmt.LetStmt(current.line, current.column, current.len,  self.new_id(), None, Possession, types, variable, None)
         self.consume(TokenType.ASSIGN, "'='がないです。代入が完成しません")
         expr = self._expr_entry()
         self.consume(TokenType.SEMI, "セミコロンがありません！")
-        return _stmt.LetStmt(current.line, current.column, current.len, self.new_id(), Possession, types, variable, expr)
+        return _stmt.LetStmt(current.line, current.column, current.len,  self.new_id(), None, Possession, types, variable, expr)
     
     def Possession(self) -> Possession:
         """
@@ -423,15 +423,15 @@ class Parser():
                 self.consume(TokenType.LBRACKET, "[がありません！")
                 element = self.type()
                 self.consume(TokenType.RBRACKET, "]がありません！")
-                return _type.ListTypeNode(typetoken.line, typetoken.column, typetoken.len, self.new_id(), element)
+                return _type.ListTypeNode(typetoken.line, typetoken.column, typetoken.len,  self.new_id(), None, element)
             case TokenType.ID:
                 self.advance()
-                return _type.UserDefinedTypeNode(typetoken.line, typetoken.column, typetoken.len, self.new_id(), typetoken.value)
+                return _type.UserDefinedTypeNode(typetoken.line, typetoken.column, typetoken.len,  self.new_id(), None, typetoken.value)
             case t if t in NOT_GEMERIC:
                 self.advance()
-                return _type.PrimitiveTypeNode(typetoken.line, typetoken.column, typetoken.len, self.new_id(), typetoken.type)
+                return _type.PrimitiveTypeNode(typetoken.line, typetoken.column, typetoken.len,  self.new_id(), None, typetoken.type)
             case _:
-                self.CallError(f"不明な型トークン'{typetoken.value}'。", ASTNode(typetoken.line, typetoken.column, typetoken.len, self.new_id()))
+                self.CallError(f"不明な型トークン'{typetoken.value}'。", ASTNode(typetoken.line, typetoken.column, typetoken.len, self.new_id(), None))
 
 
 
@@ -486,7 +486,8 @@ class Parser():
             op=tok.type,
             left=left,
             right=right,
-            id=self.new_id(),
+            id= self.new_id(),
+            scopeid=None,
         )
 
     def _make_logical(self, tok: Token, left: _expr.Expr, right: _expr.Expr) -> _expr.Expr:
@@ -499,7 +500,8 @@ class Parser():
             op=tok.type,
             left=left,
             right=right,
-            id=self.new_id(),
+            id= self.new_id(),
+            scopeid=None,
         )
 
     def _make_assign(self, tok: Token, left: _expr.Expr, right: _expr.Expr) -> _expr.Expr:
@@ -512,7 +514,8 @@ class Parser():
             op=tok.type,
             left=left,
             right=right,
-            id=self.new_id(),
+            id= self.new_id(),
+            scopeid=None,
         )
 
 
@@ -548,7 +551,7 @@ class Parser():
             operator_token = self.previous()
             right = self.prefix() # 自分自身を再帰的に呼ぶ
             return _expr.UnaryOperationNode(
-                operator_token.line, operator_token.column, operator_token.len, self.new_id(),
+                operator_token.line, operator_token.column, operator_token.len,  self.new_id(), None,
                 None, operator_token.type, right
             )
         
@@ -564,11 +567,11 @@ class Parser():
             elif self.match(TokenType.LBRACKET): # インデックス a[0]
                 index = self._expr_entry()
                 self.consume(TokenType.RBRACKET, "']'がありません。トークン不足！")
-                node = _expr.IndexAccessNode(node.line, node.col, node.len, self.new_id(), None, index, node)
+                node = _expr.IndexAccessNode(node.line, node.col, node.len,  self.new_id(), None, None, index, node)
             elif self.match(TokenType.DOT): # プロパティアクセス a.b
                 name = self.consume(TokenType.ID, "プロパティ名が必要です。")
-                node = _expr.MemberAccessNode(node.line, node.col, node.len, self.new_id(), None, node,
-                                              _expr.VariableNode(name.line, name.column, name.len, None, None, name.value))
+                node = _expr.MemberAccessNode(node.line, node.col, node.len,  self.new_id(), None, None, node,
+                                              _expr.VariableNode(name.line, name.column, name.len, self.new_id(), None, None, name.value))
             else:
                 break
         
@@ -580,21 +583,21 @@ class Parser():
         match(current.type):
             case TokenType.NUMBER:
                 self.advance()
-                return _literal.IntLiteralNode(current.line, current.column, current.len, self.new_id(), None, int(current.value))
+                return _literal.IntLiteralNode(current.line, current.column, current.len,  self.new_id(), None, None, int(current.value))
             case TokenType.DECIMAL:
                 self.advance()
-                return _literal.FloatLiteralNode(current.line, current.column, current.len, self.new_id(), None, float(current.value))
+                return _literal.FloatLiteralNode(current.line, current.column, current.len,  self.new_id(), None, None, float(current.value))
             case TokenType.ID:
                 self.advance()
                 isatmark = self.peek().type == TokenType.ANCHOR_BANG
                 if isatmark:
                     self.advance()
                     return _expr.VariableNode(
-                        current.line, current.column, current.len, self.new_id(), None, current.value,
+                        current.line, current.column, current.len,  self.new_id(), None, None, current.value,
                         _expr.AccessModifier.ANCHOR
                         )
                 return _expr.VariableNode(
-                        current.line, current.column, current.len, self.new_id(), None, current.value,
+                        current.line, current.column, current.len,  self.new_id(), None, None, current.value,
                         _expr.AccessModifier.NONE
                         )
             case TokenType.LPAREN:
@@ -604,7 +607,7 @@ class Parser():
                 return expr
             case TokenType.STRING:
                 self.advance()
-                return _literal.StrLiteralNode(current.line, current.column, current.len, self.new_id(), None, current.value)
+                return _literal.StrLiteralNode(current.line, current.column, current.len,  self.new_id(), None, None, current.value)
             case TokenType.LET | TokenType.MUT | TokenType.CONST:
                 note.append(
                     KinakoHelp(
@@ -612,10 +615,10 @@ class Parser():
                     )
                 )
                 self.CallError(f"不明なトークン{current.value}。",
-                               ASTNode(current.line, current.column, current.len, self.new_id()), [], note)
+                               ASTNode(current.line, current.column, current.len, self.new_id(), None), [], note)
             case _:
                 self.CallError(f"不明なトークン{current.value}。",
-                               ASTNode(current.line, current.column, current.len, self.new_id()), [], note)
+                               ASTNode(current.line, current.column, current.len, self.new_id(), None), [], note)
     
     def _finish_call(self, expr:_expr.Expr) -> _expr.Expr:
         # 関数呼び出し
@@ -633,4 +636,4 @@ class Parser():
                 break
         self.consume(TokenType.RPAREN,"')'がありません！")
         end = self.peek()
-        return _expr.CallNode(func.line, func.column, end.column - func.column, self.new_id(), None, expr, args)
+        return _expr.CallNode(func.line, func.column, end.column - func.column,  self.new_id(), None, None, expr, args)

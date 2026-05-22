@@ -90,13 +90,15 @@ class Collector():
     
 
     def get_fq(self, name:str):
-        return f"{self.get_scope(self.scope)}.{name}"
+        return f"{self.get_scope_fq(self.scope)}.{name}"
         
-    def get_scope(self, scope:Scope):
+    def get_scope_fq(self, scope:Scope):
         if scope.parent is None:
             return f"{scope.me}"
-        return f"{self.get_scope(self.context.symbol.scope_table[scope.parent])}.{scope.me}"
+        return f"{self.get_scope_fq(self.context.symbol.scope_table[scope.parent])}.{scope.me}"
 
+    def get_scopeid(self):
+        return ScopeId(self.num_of_scope - 1)
 
     def _visit_fn_args(self, node:stmt.FunctionDefineNode):
         for i in range(len(node.arg_Possession)-1):
@@ -109,8 +111,6 @@ class Collector():
                     help=[KinakoHelp(f"'{node.args[i].name}'の名称を変更しますか？")]
                 )
             id = node.args[i].id
-            if id is None:
-                self.call_error(f"不明なエラー！デバッグ情報:{node.args[i]}, scope:{self.scope}", node.args[i])
             symid = self.idsym()
             posid = self.idpos()
             sym = Symbol(id=symid, fq_name=self.get_fq(node.args[i].name), name=node.args[i].name,
@@ -120,10 +120,19 @@ class Collector():
             self.context.symbol.decl_node[symid] = node.args[i]
             self.scope.symbols[node.args[i].name] = symid
 
+    def set_scopeId(self, node:ASTNode):
+        value = self.get_scopeid()
+        node.scopeid = value
+        for i in node.get_child():
+            self.set_scopeId(i)
+        return
+
 
     def _visit_stmt(self, node:stmt.Stmt):
+        self.set_scopeId(node)
         match (node):
             case stmt.LetStmt():
+                
                 if node.name.name in self.scope.symbols:
                     s_id = self.scope.symbols[node.name.name]
                     n = self.context.symbol.decl_node[s_id]
@@ -132,8 +141,6 @@ class Collector():
                         related=[KinakoRelatedInfo(f"すでに宣言された場所。", n.line, n.col, n.len)],
                         help=[KinakoHelp(f"'{node.name.name}'の名称を変更しますか？")]
                     )
-                if node.id is None:
-                    self.call_error(f"不明なエラー！デバッグ情報:{node}, scope:{self.scope}", node)
                 symid = self.idsym()
                 posid = self.idpos()
                 sym = Symbol(id=symid, fq_name=self.get_fq(node.name.name), name=node.name.name,
@@ -153,8 +160,6 @@ class Collector():
                         related=[KinakoRelatedInfo(f"すでに宣言された場所。", n.line, n.col, n.len)],
                         help=[KinakoHelp(f"'{node.name.name}'の名称を変更しますか？")]
                     )
-                if node.id is None:
-                    self.call_error(f"不明なエラー！デバッグ情報:{node}, scope:{self.scope}", node)
                 symid = self.idsym()
                 posid = self.idpos()
                 sym = Symbol(id=symid, fq_name=self.get_fq(node.name.name), name=node.name.name,
@@ -177,6 +182,7 @@ class Collector():
                 return
             
             case stmt.IfStmtNode():
+                
                 with self.with_scope():
                     self._visit_try_stmt(node.then_stmt)
                 if node.else_stmt:
@@ -184,10 +190,9 @@ class Collector():
                         self._visit_try_stmt(node.else_stmt)
                 return
             case stmt.ForStmtNode():
+                
                 if isinstance(node.body, stmt.BlockNode):
                     with self.with_scope():
-                        if node.id is None:
-                            self.call_error(f"不明なエラー！デバッグ情報:{node}, scope:{self.scope}", node)
                         symid = self.idsym()
                         posid = self.idpos()
                         sym = Symbol(id=symid, fq_name=self.get_fq(node.var.name), name=node.var.name,
@@ -208,29 +213,18 @@ class Collector():
                     self._visit_try_stmt(node.body)
                 return
             case stmt.WhileStmtNode():
+                
                 with self.with_scope():
                     self._visit_try_stmt(node.body)
                 return
             case stmt.BlockNode():
+                
                 with self.with_scope():
                     for n in node.stmts:
                         self._visit_try_stmt(n)
                 return
-            case stmt.AnchorStmtNode():
-                with self.with_scope():
-                    self._visit_try_stmt(node.then_stmt)
-                if node.else_stmt:
-                    with self.with_scope():
-                        self._visit_try_stmt(node.else_stmt)
-                return
-            case stmt.HoldStmtNode():
-                with self.with_scope():
-                    self._visit_try_stmt(node.then_stmt)
-                if node.else_stmt:
-                    with self.with_scope():
-                        self._visit_try_stmt(node.else_stmt)
-                return
-            case stmt.GrabStmtNode():
+            case stmt.HoldStmtNode() | stmt.GrabStmtNode() | stmt.AnchorStmtNode():
+                
                 with self.with_scope():
                     self._visit_try_stmt(node.then_stmt)
                 if node.else_stmt:
@@ -238,4 +232,5 @@ class Collector():
                         self._visit_try_stmt(node.else_stmt)
                 return
             case _:
+                
                 return

@@ -5,6 +5,7 @@ from typing import Any, cast
 from enum import Enum
 
 from src.core.id_base.node_id import NodeId
+from src.core.id_base.scope_id import ScopeId
 
         
 @dataclass
@@ -16,7 +17,9 @@ class ASTNode():
     col: int
     len: int
 
-    id: NodeId | None
+    id: NodeId
+
+    scopeid: ScopeId | None
 
     def _format_repr(self, indent: int = 0) -> str:
         """再帰的に整形されたAST表現を生成する"""
