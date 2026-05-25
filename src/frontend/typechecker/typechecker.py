@@ -1,3 +1,4 @@
+from typing import Any, TypeVar
 
 from src.utils.error.type import KinakoTypeError
 from src.utils.error.base import KinakoHelp, KinakoRelatedInfo, KinakoBaseError
@@ -10,6 +11,7 @@ from src.core.id_base.type_id import TypeId
 from src.core.node.ast_base import ASTNode
 from src.frontend.parser.models import stmt
 from src.frontend.parser.models import expr
+from src.frontend.parser.models import literal
 import src.frontend.parser.models.type as ntype
 
 from src.frontend.lexer.tokentype import TokenType
@@ -37,7 +39,7 @@ class TypeChecker():
         self._visit_program()
         return
     
-    def male_type(self):
+    def make_type(self):
         res = TypeId(self.type_id)
         self.type_id += 1
         return res
@@ -50,14 +52,16 @@ class TypeChecker():
             sym = self.context.symbol.symbol_table[symid]
             match node:
                 case stmt.LetStmt():
-                    self.ntype2type(node.type)
+                    id = self.make_type()
+                    sym.type_id = id
+                    self.context.symbol.type_table[id] = self.ntype2type(node.type)
                 case stmt.FunctionDefineNode():
-                    pass
+                    id = self.make_type()
+                    sym.type_id = id
+                    type_functional = tgeneric.FunctionType([self.ntype2type(i) for i in node.arg_types], self.ntype2type(node.return_type))
+                    self.context.symbol.type_table[id] = type_functional
                 case _:
                     self.call_error(f"不明な定義ノード。", node)
-
-            self.context.symbol.type_table
-    
 
     def ntype2type(self, ntyp:ntype.TypeNode) -> ttype.Type:
         match ntyp:
@@ -120,23 +124,69 @@ class TypeChecker():
             return
 
     def _visit_stmt(self, node:stmt.Stmt):
-        if isinstance(node, stmt.BlockNode):
-            for i in node.stmts:
-                self._visit_try_stmt(i)
-            return
         if isinstance(node, stmt.LetStmt):
-            if node.right:
-                self._visit_check(node.right)
+            self._visit_letnode(node)
             return
         self._visit_check(node)
+    
+    def _visit_letnode(self, node:stmt.LetStmt):
+        left_type = node.type
+        if not node.right:
+            return
+        right_type = self._visit_expr(node.right)
+        return
     
     def _visit_check(self, node:ASTNode):
         for i in node.get_child():
             match i:
                 case expr.Expr():
                     self._visit_expr(i)
+                case stmt.Stmt():
+                    self._visit_try_stmt(i)
                 case _:
                     continue
     
-    def _visit_expr(self, node:expr.Expr):
-        pass
+    def _visit_expr(self, node:expr.Expr) -> ttype.Type:
+        match node:
+            case expr.BinaryOperationNode():
+                return self._visit_binary(node)
+            case expr.UnaryOperationNode():
+                return
+            case literal.LiteralNode():
+                return self._visit_literal(node)
+    
+    def _visit_binary(self, node:expr.BinaryOperationNode) -> ttype.Type:
+        rt = self._visit_expr(node.right)
+        lt = self._visit_expr(node.left)
+        # 会わなかったらルックアップ使ってあげあげ
+        result_t = self._visit_match_type(rt, lt)
+        result_op = {
+            TokenType.PLUS:ttype.Operators.ADD,
+            TokenType.MINUS:ttype.Operators.SUB,
+            TokenType.MULT:ttype.Operators.MUL,
+            TokenType.DIV:ttype.Operators.DIV,
+            TokenType.MOD:ttype.Operators.MOD,
+        } .get(node.op)
+        if not result_t:
+            self.call_error(f"不明な型パターン。'{rt}'と'{lt}'の組み合わせ。", node)
+        if not result_op:
+            self.call_error(f"不明な演算子。'{node.op}'", node)
+        if not result_op in result_t.get_can_Operators():
+            self.call_error(f"不明な演算子。この型'{result_t}'に対して'{node.op}'は定義されません。", node)
+        return result_t
+
+    def _visit_match_type(self, rt:ttype.Type, lt:ttype.Type) -> ttype.Type | None:
+        if rt == lt:
+            return rt
+        
+
+    def _visit_literal(self, node:literal.LiteralNode) -> ttype.Type:
+        match node:
+            case literal.IntLiteralNode():
+                return ttype.NumberLeaf()
+            case literal.BoolLiteralNode():
+                return tleaf.BoolType()
+            case literal.FloatLiteralNode():
+                return ttype.FloatLeaf()
+            case _:
+                raise

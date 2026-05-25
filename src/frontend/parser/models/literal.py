@@ -1,48 +1,46 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Any
 
 from src.frontend.parser.models.expr import Expr
 
-T = TypeVar("T")
-
 
 @dataclass
-class LiteralNode(Expr, Generic[T]):
+class LiteralNode(Expr):
     """
     値を持つ
     """
-    value: T
+    value: Any
 
 
 @dataclass
-class IntLiteralNode(LiteralNode[int]):
+class IntLiteralNode(LiteralNode):
     """
     整数
     """
-    pass
+    value: int
 
 
 @dataclass
-class StrLiteralNode(LiteralNode[str]):
+class StrLiteralNode(LiteralNode):
     """
     文字
     """
-    pass
+    value: str
 
 
 @dataclass
-class FloatLiteralNode(LiteralNode[float]):
+class FloatLiteralNode(LiteralNode):
     """
     小数点
     """
-    pass
+    value: float
 
 
 @dataclass
-class BoolLiteralNode(LiteralNode[bool]):
+class BoolLiteralNode(LiteralNode):
     """
     文字
     """
-    pass
+    value: bool
