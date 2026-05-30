@@ -178,6 +178,8 @@ class TypeChecker():
     def _visit_match_type(self, rt:ttype.Type, lt:ttype.Type) -> ttype.Type | None:
         if rt == lt:
             return rt
+        # 型昇格または自動的なLiteral昇格
+        
         
 
     def _visit_literal(self, node:literal.LiteralNode) -> ttype.Type:
