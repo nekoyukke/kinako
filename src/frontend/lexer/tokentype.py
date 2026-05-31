@@ -24,9 +24,6 @@ class TokenType(Enum):
 
     ASSIGN = r'='
     AS = r'as\b'
-    MOVE = r'move'
-    CAST = r'cast\b'
-
     # リテラル
     NONE = r'none\b'
     NULL = r'null\b'
@@ -45,16 +42,6 @@ class TokenType(Enum):
     RETURN = r'return\b'
     IN = r'in\b'
 
-    # 組み込み占有権関連
-    LET = r'let\b'
-    CONST = r'const\b'
-    MUT = r'mut\b'
-
-    # 後付け系
-    ANCHOR = r'anchor\b'
-    HOLD = r'hold\b'
-    GRAB = r'grab\b'
-
     # キーワード
     LABRACKET = r'<'
     RABRACKET = r'>'
@@ -67,41 +54,6 @@ class TokenType(Enum):
     SEMI = r';'
     COMMA = r','
 
-    # 型
-    tNUMBER = r'number\b'
-    tDECIMAL = r'decimal\b'
-    tSTRING = r'string\b'
-    tANY = r'any\b'
-    tLIST = r'list\b'
-    tARRAY = r'array\b'
-    tAUTO = r'auto\b'
-    tMAP = r'map\b'
-    tPTR = r'ptr\b'
-    tBOOL = r'bool\b'
-    tTUPLE = r'tuple\b'
-    tFUNCTION = r'function\b'
-
-    # MEM
-    tINT8 = r'int8\b'
-    tUINT8 = r'uint8\b'
-    tINT16 = r'int16\b'
-    tUINT16 = r'uint16\b'
-    tINT32 = r'int32\b'
-    tUINT32 = r'uint32\b'
-    tINT64 = r'int64\b'
-    tUINT64 = r'uint64\b'
-    tINT128 = r'int128\b'
-    tUINT128 = r'uint128\b'
-
-    tFLOAT32 = r'float32\b'
-    tFLOAT64 = r'float64\b'
-    tFLOAT = r'float\b'
-    tDOUBLE = r'double\b'
-    tINT = r'int\b'
-    tLONG = r'long\b'
-    tSHORT = r'short\b'
-    tCHAR = r'char\b'
-
     # 可変
     DECIMAL = r'\d+\.\d+'
     SKIP = r'\s+'
@@ -112,10 +64,3 @@ class TokenType(Enum):
 
     # 特殊
     EOF = ""
-
-GENERIC = {"tLIST", "tARRAY", "tMAP", "tPTR", "tTUPLE", "tFUNCTION"}
-
-NOT_GEMERIC = tuple(
-    t for t in TokenType
-    if t.name.startswith("t") and t.name not in GENERIC
-)
