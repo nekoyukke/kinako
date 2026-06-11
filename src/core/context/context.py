@@ -1,8 +1,13 @@
 from dataclasses import dataclass
 
+
+
 @dataclass
 class Context():
-    type_table: dict[str, Type]
-    type_table: dict[str, Type]
-    type_table: dict[str, Type]
-    type_table: dict[str, Type]
+    types: dict[str, Type]
+    rights: dict[str, Right]
+    policys: dict[str, Policy]
+    # groups: dict[str, Group]
+    # interfaces: dict[str, Interface]
+    functions: dict[str, Function]
+    aliases: dict[str, Aliasses]

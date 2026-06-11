@@ -114,4 +114,4 @@ for animal in zoo {
 構文から参照され、制御が発生する場合がある。
 
 また、この仕様により、自動的にコードが
-`interface`, `Group`, `class`のような構造になる。
+`interface`, `Group`, `class`のような順の構造になる。
