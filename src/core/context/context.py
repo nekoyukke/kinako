@@ -10,4 +10,6 @@ class Context():
     # groups: dict[str, Group]
     # interfaces: dict[str, Interface]
     functions: dict[str, Function]
-    aliases: dict[str, Aliasses]
+    type_liases: dict[str, Aliasses]
+    policy_liases: dict[str, Aliasses]
+    right_liases: dict[str, Aliasses]
