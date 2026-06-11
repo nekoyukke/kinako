@@ -209,11 +209,11 @@ class Parser():
         body = self._Stmt()
         return _stmt.ForEachStmt(fortok.line, fortok.column, fortok.len, expr, var, , body)
     
-    def while_node(self) -> _stmt.WhileStmtNode:
+    def while_node(self) -> _stmt.WhileStmt:
         while_token = self.advance()
         condition = self._expr_entry()
         body = self._Stmt()
-        return _stmt.WhileStmtNode(while_token.line, while_token.column, while_token.len, condition, body)
+        return _stmt.WhileStmt(while_token.line, while_token.column, while_token.len, condition, body)
     
     def import_node(self):
         import_token = self.peek()
