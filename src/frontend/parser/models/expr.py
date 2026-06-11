@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 
 from src.frontend.parser.models.base import ASTNode
-nr_dataclass = dataclass(repr=False)
 
-@nr_dataclass
+
+@dataclass(repr=False)
 class Expr(ASTNode):
     pass
 
@@ -15,7 +15,7 @@ class BinaryKind(Enum):
     DIV = "/"
     MOD = "%"
 
-@nr_dataclass
+@dataclass(repr=False)
 class BinaryExpr(Expr):
     right: Expr
     left: Expr
@@ -28,17 +28,17 @@ class UnaryKind(Enum):
     DIV = "/"
     MOD = "%"
 
-@nr_dataclass
+@dataclass(repr=False)
 class UnaryExpr(Expr):
     expr: Expr
     op: UnaryKind
 
-@nr_dataclass
+@dataclass(repr=False)
 class Identifier(Expr):
     name:str
     generic: list[Identifier]
 
-@nr_dataclass
+@dataclass(repr=False)
 class CallExpr(Expr):
     call: Expr
     args: list[Expr]
@@ -49,36 +49,36 @@ class LogicKind(Enum):
     LE = r'<='
     GE = r'>='
 
-@nr_dataclass
+@dataclass(repr=False)
 class LogicExpr(Expr):
     right: Expr
     left: Expr
     op: LogicKind
 
-@nr_dataclass
+@dataclass(repr=False)
 class Literal(Expr):
     pass
 
-@nr_dataclass
+@dataclass(repr=False)
 class BoolLiteral(Literal):
     is_true:bool
 
-@nr_dataclass
+@dataclass(repr=False)
 class IntLiteral(Literal):
     number:int
 
-@nr_dataclass
+@dataclass(repr=False)
 class FloatLiteral(Literal):
     number:float
 
-@nr_dataclass
+@dataclass(repr=False)
 class NoneLiteral(Literal):
     pass
 
-@nr_dataclass
+@dataclass(repr=False)
 class NullLiteral(Literal):
     pass
 
-@nr_dataclass
+@dataclass(repr=False)
 class StringLiteral(Literal):
     string:str
