@@ -44,5 +44,4 @@ class Lexer():
                 case _:
                     # Token生成
                     tokens.append(Token(kind, value, line, col, len(value)))
-        tokens.append(Token(TokenType.EOF, "", 0,0,0,))
         return tokens

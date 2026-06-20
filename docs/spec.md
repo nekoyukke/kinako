@@ -91,7 +91,7 @@ class Dog use Speak in Animal {
 
 class Cat use Speak in Animal {
     fn void speak() {
-        print("neow!");
+        print("two!");
         return;
     }
 }
@@ -103,9 +103,11 @@ list[Animal] zoo = {
 };
 
 for animal in zoo {
-    animal.speak(); // one!\nneow!\n...
+    animal.speak();
 }
-
+// one!
+// two!
+// ...
 ```
 
 `Group`は型システムではなく、

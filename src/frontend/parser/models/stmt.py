@@ -6,21 +6,29 @@ from dataclasses import dataclass
 @dataclass(repr=False)
 class Stmt(ASTNode):
     pass
+
 # 宣言系
 @dataclass(repr=False)
 class VariableDeclStmt(Stmt):
-    name: str
+    name: _expr.Identifier
     contract: Contract
-    left: _expr.Expr
+    left: _expr.Expr | None
 
 @dataclass(repr=False)
 class FunctionDeclStmt(Stmt):
-    name: str
+    name: _expr.Identifier
     result: Contract
     params: list[Parameter]
+    body: Stmt
+
+# そのほか
 
 @dataclass(repr=False)
 class ExprStmt(Stmt):
+    expr: _expr.Expr
+
+@dataclass(repr=False)
+class ReturnStmt(Stmt):
     expr: _expr.Expr
 
 # ブロック系

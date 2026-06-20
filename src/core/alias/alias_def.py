@@ -1,20 +1,22 @@
 from dataclasses import dataclass
 
-from src.core.type.type_ref import TypeRef
-from src.core.right.right_ref import RightRef
-from src.core.policy.policy_ref import PolicyRef
+from src.core.identifier.identifier import Identifier as core_Identifier
+from src.core.source.source_span import SourceSpan
 
 @dataclass
 class TypeAliasDef:
     name: str
-    target: TypeRef
+    target: core_Identifier
+    span: SourceSpan
 
 @dataclass
 class RightAliasDef:
     name: str
-    target: list[RightRef]
+    target: list[core_Identifier]
+    span: SourceSpan
 
 @dataclass
 class PolicyAliasDef:
     name: str
-    target: PolicyRef
+    target: core_Identifier
+    span: SourceSpan

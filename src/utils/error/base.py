@@ -7,7 +7,6 @@ class KinakoRelatedInfo:
         self.column = column
         self.length = length
 
-
 class KinakoHelp:
     def __init__(self, message: str):
         self.message = message
@@ -30,7 +29,7 @@ class KinakoBaseError(Exception):
         column: int,
         source: str,
         length: int,
-        related: list[KinakoRelatedInfo] | None = None,
+        related: list["KinakoRelatedInfo"] | None = None,
         help: list[KinakoHelp] | None = None
     ):
         self.message = message
@@ -40,26 +39,27 @@ class KinakoBaseError(Exception):
         self.length = length
         self.related = related or []
         self.help = help or []
+        
+        self.stack_frames = traceback.extract_stack()[:-1]
+        
         super().__init__(self.__str__())
 
     @property
     def name(self):
         return self.__class__.__name__
     
-    def format_file_only(self):
-        if not self.__traceback__:
-            return ""
-
-        frames = traceback.extract_tb(self.__traceback__)
+    def format_file_only(self) -> str:
         out = ""
-
-        for f in frames:
+        
+        for f in self.stack_frames:
+                
             out += f'  File "{f.filename}", line {f.lineno}, in {f.name}\n'
-
+            
         return out
 
-    def __str__(self, is_tb:bool = True) -> str:
-        tb = self.format_file_only()
+    def __str__(self, is_tb: bool = True) -> str:
+        tb = self.format_file_only() if is_tb else ""
+        
         lines = self.source.splitlines()
         total = len(lines)
         width = len(str(total))
@@ -90,23 +90,14 @@ class KinakoBaseError(Exception):
         related_text = ""
         for r in self.related:
             related_text += f"\n{self.YELLOW}note:{self.RESET} {r.message}\n"
-
-            if 1 <= r.line <= total:
-                line_text = lines[r.line - 1]
-            else:
-                line_text = ""
-
+            line_text = lines[r.line - 1] if 1 <= r.line <= total else ""
             num = str(r.line).rjust(width)
-
             col = max(1, min(r.column, len(line_text) + 1))
             tok_len = max(1, r.length)
-
             before = line_text[:col - 1]
             target = line_text[col - 1: col - 1 + tok_len]
             after = line_text[col - 1 + tok_len:]
-
             colored = before + self.BG_RED + self.BOLD + target + self.RESET + after
-
             related_text += f" {num} {colored}\n"
 
         # --- help ---
@@ -114,24 +105,16 @@ class KinakoBaseError(Exception):
         for h in self.help:
             help_text += f"\n{self.GREEN}help:{self.RESET} {self.BG_GREEN}{h.message}{self.RESET}"
 
-        if is_tb:
-            return (
-                f"{self.WHITE}\nTraceback (most recent call last):\n"
-                f"  {tb}\n"
-                f'  File "<source>", line {self.line}\n'
-                + "\n".join(snippet)
-                + f"\n\n{self.RED}{self.name}: {self.message}{self.RESET}\n"
-                + related_text
-                + help_text
-            )
         return (
             f"{self.WHITE}\nTraceback (most recent call last):\n"
+            f"{tb}"  # 空っぽにならず、呼ばれた順にフレームが並びます
             f'  File "<source>", line {self.line}\n'
             + "\n".join(snippet)
             + f"\n\n{self.RED}{self.name}: {self.message}{self.RESET}\n"
             + related_text
             + help_text
         )
+
 
 
 if __name__ == "__main__":

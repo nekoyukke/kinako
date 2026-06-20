@@ -9,11 +9,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from src.frontend.parser.models.expr import Identifier
 
+
+
 @dataclass
 class Contract:
     type: Identifier | None
     right: Identifier | None
     policy: Identifier | None
+
 
 @dataclass
 class Parameter:

@@ -41,6 +41,7 @@ class TokenType(Enum):
     FN = r'fn\b'
     RETURN = r'return\b'
     IN = r'in\b'
+    LET = r'let\b'
 
     # キーワード
     LABRACKET = r'<'
@@ -53,6 +54,7 @@ class TokenType(Enum):
     RBRACKET = r'\]'
     SEMI = r';'
     COMMA = r','
+    COLON = r':'
 
     # 可変
     DECIMAL = r'\d+\.\d+'

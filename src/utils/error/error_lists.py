@@ -7,7 +7,12 @@ class ErrorLists():
     errs: list[KinakoBaseError]
 
     # クラス表示の共通部分
-    def display(self) -> str:
+    def display(self, is_tb:bool=False) -> str:
+        if is_tb:
+            result_stirng = ""
+            result_stirng += "\n\n\n".join([er.__str__(False) for er in self.errs])
+            return result_stirng
+        
         file_eq_id:dict[str, list[KinakoBaseError]] = {}
         for err in self.errs:
             ffo = err.format_file_only()
@@ -24,8 +29,8 @@ class ErrorLists():
         return result_stirng
 
 
-    def __str__(self) -> str:
-        return self.display()
+    def __str__(self, is_tb:bool=False) -> str:
+        return self.display(is_tb)
 
-    def __repr__(self) -> str:
-        return self.display()
+    def __repr__(self, is_tb:bool=False) -> str:
+        return self.display(is_tb)

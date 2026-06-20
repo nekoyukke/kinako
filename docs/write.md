@@ -1,5 +1,5 @@
 # kinakoの書き方
-
+めっちゃめも
 ## 改行
 
 グローバルでの`class`, `def`との間は`2個`。\
@@ -52,3 +52,5 @@ Checker
 [いますぐ輪廻 を歌ってみた / 黒うさぎ](https://www.youtube.com/watch?v=8whiaarnvCY)
 
 [ヨルシカ - あぶく（OFFICIAL VIDEO](https://www.youtube.com/watch?v=OHAjc-ayhus)
+
+界隈曲がよさすぎる。神かな

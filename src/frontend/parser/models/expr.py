@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from src.frontend.parser.models.base import ASTNode
-
+from src.core.identifier.identifier import Identifier as core_Identifier
 
 @dataclass(repr=False)
 class Expr(ASTNode):
@@ -14,11 +14,13 @@ class BinaryKind(Enum):
     MULT = "*"
     DIV = "/"
     MOD = "%"
+    LOGIC_OR = "||"
+    LOGIC_AND = "&&"
 
 @dataclass(repr=False)
 class BinaryExpr(Expr):
-    right: Expr
     left: Expr
+    right: Expr
     op: BinaryKind
 
 class UnaryKind(Enum):
@@ -35,8 +37,7 @@ class UnaryExpr(Expr):
 
 @dataclass(repr=False)
 class Identifier(Expr):
-    name:str
-    generic: list[Identifier]
+    ident: core_Identifier
 
 @dataclass(repr=False)
 class CallExpr(Expr):
@@ -48,12 +49,42 @@ class LogicKind(Enum):
     NE = r'!='
     LE = r'<='
     GE = r'>='
+    GT = ">"
+    LT = "<"
 
 @dataclass(repr=False)
 class LogicExpr(Expr):
-    right: Expr
     left: Expr
+    right: Expr
     op: LogicKind
+
+class AssignKind(Enum):
+    ASSIGN = r'='
+    PULS = r'+='
+    MINUS = r'-='
+    MULT = r'*='
+    DIV = r'/='
+
+@dataclass(repr=False)
+class AssignExpr(Expr):
+    left: Expr
+    right: Expr
+    op: AssignKind
+
+@dataclass(repr=False)
+class AccessExpr(Expr):
+    pass
+
+@dataclass(repr=False)
+class IndexExpr(AccessExpr):
+    expr: Expr
+    index: Expr
+
+@dataclass(repr=False)
+class MemberExpr(AccessExpr):
+    expr: Expr
+    member: Identifier
+
 
 @dataclass(repr=False)
 class Literal(Expr):
@@ -82,3 +113,6 @@ class NullLiteral(Literal):
 @dataclass(repr=False)
 class StringLiteral(Literal):
     string:str
+
+
+kinds = LogicKind | UnaryKind | AssignKind | BinaryKind
