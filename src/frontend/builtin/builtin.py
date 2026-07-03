@@ -21,7 +21,7 @@ def inject_builtin_policies(ctx:Context):
     ctx.policies["Mutex"] = PolicyDef("Mutex", zero)
 
 def inject_builtin_alias(ctx:Context):
-    ctx.right_aliases["Onwer"] = RightAliasDef("Onwer", [Identifier("Read", []), Identifier("Unique", [])], zero)
+    ctx.right_aliases["Onwer"] = RightAliasDef("Onwer", [Identifier(Variable("Read"), []), Identifier(Variable("Unique"), [])], zero)
 
 def inject_builtins(ctx: Context) -> Context:
     inject_builtin_types(ctx)

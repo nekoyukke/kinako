@@ -2,9 +2,8 @@ import difflib
 from dataclasses import dataclass, field
 
 import src.core.context.context as _ctx
-from src.core.symbol.symbol_def import Symbol, VariableSymbol, FunctionSymbol
+from src.core.symbol.symbol_def import Symbol
 from src.core.source.source_span import SourceSpan
-from src.core.variable.variable_def import VariableDef
 
 import src.frontend.parser.models.stmt as _stmt
 import src.frontend.parser.models.expr as _expr
@@ -79,28 +78,28 @@ class Resolver:
         return difflib.get_close_matches(name, names, cc)
 
     def check_contract(self, contract:_base.Contract, node:_base.ASTNode):
-        _type = None if contract.type is None else contract.type.ident
+        _type = None if contract.type is None else contract.type
         if _type:
             if not _type.name in self.context.policies | self.context.policy_aliases:
-                name = self.get_names(_type.name)[0]
+                name = self.get_names(_type.name.name)[0]
                 other = self.context.functions[name].span
                 if name:
                     self.call_error(f"不明なポリシー名。{_type.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])
                 else:
                     self.call_error(f"不明なポリシー名。{_type.name}", node,)
-        _policy = None if contract.policy is None else contract.policy.ident
+        _policy = None if contract.policy is None else contract.policy
         if _policy:
             if not _policy.name in self.context.policies | self.context.policy_aliases:
-                name = self.get_names(_policy.name)[0]
+                name = self.get_names(_policy.name.name)[0]
                 other = self.context.functions[name].span
                 if name:
                     self.call_error(f"不明なポリシー名。{_policy.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])
                 else:
                     self.call_error(f"不明なポリシー名。{_policy.name}", node,)
-        _right = None if contract.right is None else contract.right.ident
+        _right = None if contract.right is None else contract.right
         if _right:
             if not _right.name in self.context.rights | self.context.right_aliases:
-                name = self.get_names(_right.name)[0]
+                name = self.get_names(_right.name.name)[0]
                 other = self.context.functions[name].span
                 if name:
                     self.call_error(f"不明な権利名。{_right.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])
@@ -125,31 +124,24 @@ class Resolver:
                 if node.left:
                     self._visit_expr(node.left)
 
-
-
                 name = node.name.ident.name
                 if self.scope.check(name):
                     other = self.scope.lookup(name)
-                    if isinstance(other, VariableSymbol):
-                        span = other.target.span
+                    if other is not None:
+                        span = other.span
                         self.call_error("宣言がかぶっています。", node, related=[KinakoRelatedInfo("被っている宣言元:", span.line, span.col, span.len)])
                         return
-                    elif isinstance(other, FunctionSymbol):
-                        span = self.context.functions[other.name].span
+                    elif node.name.ident.name in self.context.functions:
+                        span = self.context.functions[node.name.ident.name].span
                         self.call_error("宣言がかぶっています。", node, related=[KinakoRelatedInfo("被っている宣言元:", span.line, span.col, span.len)])
                         return
-                    self.call_error("宣言がかぶっています。", node)
-                    return
+                    else:
+                        self.call_error("宣言がかぶっています。", node)
+                        return
                 _type, _right, _policy = self.check_contract(node.contract, node)
-                var = VariableSymbol(
+                var = Symbol(
                     name,
-                    VariableDef(
-                        name,
-                        SourceSpan(node.line, node.col, node.len),
-                        _type,
-                        _policy,
-                        _right
-                    )
+                    SourceSpan(node.line, node.col, node.len),
                 )
                 self.scope.define(
                     var
@@ -163,15 +155,9 @@ class Resolver:
                     name = i.name
                     self.scope.check(name)
                     _type, _right, _policy = self.check_contract(i.contract, node)
-                    var = VariableSymbol(
+                    var = Symbol(
                         name,
-                        VariableDef(
-                            name,
-                            SourceSpan(node.line, node.col, node.len),
-                            _type,
-                            _policy,
-                            _right
-                        )
+                        SourceSpan(node.line, node.col, node.len),
                     )
                     self.scope.define(
                         var
@@ -199,7 +185,7 @@ class Resolver:
 
     def _visit_expr(self, node:_expr.Expr):
         match (node):
-            case _expr.Identifier():
+            case _expr.Variable():
                 # セット
                 lookup = self.scope.lookup(node.ident.name)
                 if lookup:
@@ -207,18 +193,16 @@ class Resolver:
                     self.context.resolved[self._get_node_id(node)] = lookup
                     return
                 if node.ident.name in self.context.functions:
-                    fn = self.context.functions[node.ident.name]
-                    self.context.resolved[self._get_node_id(node)] = FunctionSymbol(fn.name, node.ident.name)
+                    # チェックはあっち側。
                     return
                 name = self.get_names(node.ident.name)
                 if name:
                     if name[0] in self.scope.get_variable():
                         other = self.scope.lookup(name[0])
-                        if isinstance(other, VariableSymbol):
-                            self.call_error(f"不明な変数名{node.ident.name}", node, related=[KinakoRelatedInfo(f"もしかしたら{name[0]}ではありませんか？", other.target.span.line, other.target.span.col, other.target.span.len)])
-                            return
-                        elif isinstance(other, FunctionSymbol):
-                            span = self.context.functions[other.ref].span
+                        if other is not None:
+                            self.call_error(f"不明な変数名{node.ident.name}", node, related=[KinakoRelatedInfo(f"もしかしたら{name[0]}ではありませんか？", other.span.line, other.span.col, other.span.len)])
+                        elif node.ident.name in self.context.functions:
+                            span = self.context.functions[node.ident.name].span
                             self.call_error(f"不明な変数名{node.ident.name}", node, related=[KinakoRelatedInfo(f"もしかしたら{name[0]}ではありませんか？", span.line, span.col, span.len)])
                             return
                     self.call_error(f"不明な変数名{node.ident.name}", node, related=[KinakoRelatedInfo(f"もしかしたら{name[0]}ではありませんか？", node.line, node.col, node.len)])

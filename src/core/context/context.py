@@ -8,6 +8,11 @@ from src.core.function.function_def import FunctionDef
 from src.core.alias.alias_def import TypeAliasDef, RightAliasDef, PolicyAliasDef
 from src.core.symbol.symbol_def import Symbol
 
+@dataclass
+class ExprInfo():
+    type: TypeDef
+    right: RightDef
+
 
 @dataclass
 class Context():
@@ -22,6 +27,8 @@ class Context():
     right_aliases: dict[str, RightAliasDef]
     # resolver
     resolved: dict[int, Symbol]
+    # checker
+    checker: dict[Symbol, ExprInfo]
 
     def display(self, dictionary:dict[Any, Any]):
         string = ""

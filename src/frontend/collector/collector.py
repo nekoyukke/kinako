@@ -48,9 +48,9 @@ class Collector:
                 params: list[ParameterDef] = []
                 for param in node.params:
                     # Noneチェックとセット
-                    _type = None if param.contract.type is None else param.contract.type.ident
-                    _policy = None if param.contract.policy is None else param.contract.policy.ident
-                    _right = None if param.contract.right is None else param.contract.right.ident
+                    _type = None if param.contract.type is None else param.contract.type
+                    _policy = None if param.contract.policy is None else param.contract.policy
+                    _right = None if param.contract.right is None else param.contract.right
 
                     params += [ParameterDef(
                         param.name,
@@ -61,9 +61,9 @@ class Collector:
                     )]
 
                 # Noneチェックとセット
-                _type = None if node.result.type is None else node.result.type.ident
-                _policy = None if node.result.policy is None else node.result.policy.ident
-                _right = None if node.result.right is None else node.result.right.ident
+                _type = None if node.result.type is None else node.result.type
+                _policy = None if node.result.policy is None else node.result.policy
+                _right = None if node.result.right is None else node.result.right
 
                 self.context.functions[node.name.ident.name] = FunctionDef(
                     node.name.ident.name,
@@ -77,28 +77,28 @@ class Collector:
                 return
 
     def check_contract(self, contract:_base.Contract, node:_base.ASTNode):
-        _type = None if contract.type is None else contract.type.ident
+        _type = None if contract.type is None else contract.type
         if _type:
             if not _type.name in self.context.policies | self.context.policy_aliases:
-                name = self.get_names(_type.name)[0]
+                name = self.get_names(_type.name.name)[0]
                 other = self.context.functions[name].span
                 if name:
                     self.call_error(f"不明なポリシー名。{_type.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])
                 else:
                     self.call_error(f"不明なポリシー名。{_type.name}", node,)
-        _policy = None if contract.policy is None else contract.policy.ident
+        _policy = None if contract.policy is None else contract.policy
         if _policy:
             if not _policy.name in self.context.policies | self.context.policy_aliases:
-                name = self.get_names(_policy.name)[0]
+                name = self.get_names(_policy.name.name)[0]
                 other = self.context.functions[name].span
                 if name:
                     self.call_error(f"不明なポリシー名。{_policy.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])
                 else:
                     self.call_error(f"不明なポリシー名。{_policy.name}", node,)
-        _right = None if contract.right is None else contract.right.ident
+        _right = None if contract.right is None else contract.right
         if _right:
             if not _right.name in self.context.rights | self.context.right_aliases:
-                name = self.get_names(_right.name)[0]
+                name = self.get_names(_right.name.name)[0]
                 other = self.context.functions[name].span
                 if name:
                     self.call_error(f"不明な権利名。{_right.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])

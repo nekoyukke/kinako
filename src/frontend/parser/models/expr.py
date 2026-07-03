@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from src.frontend.parser.models.base import ASTNode
-from src.core.identifier.identifier import Identifier as core_Identifier
+from src.core.identifier.identifier import Variable as core_Variable
 
 @dataclass(repr=False)
 class Expr(ASTNode):
@@ -36,8 +36,8 @@ class UnaryExpr(Expr):
     op: UnaryKind
 
 @dataclass(repr=False)
-class Identifier(Expr):
-    ident: core_Identifier
+class Variable(Expr):
+    ident: core_Variable
 
 @dataclass(repr=False)
 class CallExpr(Expr):
@@ -83,7 +83,7 @@ class IndexExpr(AccessExpr):
 @dataclass(repr=False)
 class MemberExpr(AccessExpr):
     expr: Expr
-    member: Identifier
+    member: Variable
 
 
 @dataclass(repr=False)

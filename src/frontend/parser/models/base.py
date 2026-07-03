@@ -4,11 +4,7 @@ from dataclasses import dataclass, fields
 from typing import Any, cast
 from enum import Enum
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from src.frontend.parser.models.expr import Identifier
-
+from src.core.identifier.identifier import Identifier
 
 
 @dataclass

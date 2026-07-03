@@ -10,13 +10,13 @@ class Stmt(ASTNode):
 # 宣言系
 @dataclass(repr=False)
 class VariableDeclStmt(Stmt):
-    name: _expr.Identifier
+    name: _expr.Variable
     contract: Contract
     left: _expr.Expr | None
 
 @dataclass(repr=False)
 class FunctionDeclStmt(Stmt):
-    name: _expr.Identifier
+    name: _expr.Variable
     result: Contract
     params: list[Parameter]
     body: Stmt
@@ -55,6 +55,6 @@ class WhileStmt(Stmt):
 @dataclass(repr=False)
 class ForEachStmt(Stmt):
     iterator: _expr.Expr
-    variable: _expr.Identifier
+    variable: _expr.Variable
     contract: Contract
     loop: Stmt

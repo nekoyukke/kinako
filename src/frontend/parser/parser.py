@@ -8,7 +8,8 @@ import src.frontend.parser.models.stmt as _stmt
 from src.utils.error.syntax import KinakoSyntaxError
 from src.utils.error.base import KinakoHelp, KinakoRelatedInfo, KinakoBaseError
 
-from src.core.identifier.identifier import Identifier as core_Identifier
+from src.core.identifier.identifier import Variable as core_Variable
+from src.core.identifier.identifier import Identifier
 
 
 class Parser():
@@ -155,23 +156,23 @@ class Parser():
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
                 return _stmt.ExprStmt(expr.line, expr.col, expr.len, expr)
     
-    def get_identifier(self, message:str) -> _expr.Identifier | None:
+    def get_identifier(self, message:str) -> Identifier | None:
         id = self.accept(TokenType.ID)
         if id is None:return None
-        generic:list[core_Identifier] = []
+        generic:list[Identifier] = []
         if self.match(TokenType.LBRACKET):
             # self.consume(TokenType.LBRACKET, f"[がありません！。{message}")
             while (app:=self.get_identifier(message))!=None:
-                generic.append(app.ident)
+                generic.append(app)
                 if self.peek().type == TokenType.RBRACKET:
                     break
                 self.consume(TokenType.COMMA, f",がありません！。{message}")
             self.consume(TokenType.RBRACKET, f"]がありません！。{message}")
-        return _expr.Identifier(id.line, id.column, id.len, core_Identifier(id.value, generic))
+        return Identifier(core_Variable(id.value), generic)
 
-    def get_variable(self, message:str) -> _expr.Identifier:
+    def get_variable(self, message:str) -> _expr.Variable:
         result = self.consume(TokenType.ID, message)
-        return _expr.Identifier(result.line, result.column, result.len, core_Identifier(result.value, []))
+        return _expr.Variable(result.line, result.column, result.len, core_Variable(result.value))
 
     def get_contract(self, message:str) -> _base.Contract:
         type = self.get_identifier(f"型パース失敗！{message}")
@@ -268,15 +269,15 @@ class Parser():
             contract = self.get_contract("関数定義には必須です！！")
         body = self._Stmt_entry()
         if body is None:
-            self.CallError("不明な構文。正しくはfn <name>(args) -> contract {...}", _expr.Identifier(
+            self.CallError("不明な構文。正しくはfn <name>(args) -> contract {...}", _expr.Variable(
                 define_token.line, define_token.column, define_token.len,
-                core_Identifier(define_token.value, [])))
+                core_Variable(define_token.value)))
             
         return _stmt.FunctionDeclStmt(
                 define_token.line,
                 define_token.column,
                 define_token.len,
-                _expr.Identifier(id_token.line, id_token.column, id_token.len, core_Identifier(id_token.value, [])),
+                _expr.Variable(id_token.line, id_token.column, id_token.len, core_Variable(id_token.value)),
                 contract,
                 args,
                 body,
