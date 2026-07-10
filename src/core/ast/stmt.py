@@ -1,10 +1,12 @@
-from src.frontend.parser.models.base import ASTNode, Contract, Parameter
-import src.frontend.parser.models.expr as _expr
 from dataclasses import dataclass
+from abc import ABC
+
+from src.core.ast.base import ASTNode, Contract, Parameter
+import src.core.ast.expr as _expr
 
 
 @dataclass(repr=False)
-class Stmt(ASTNode):
+class Stmt(ASTNode, ABC):
     pass
 
 # 宣言系

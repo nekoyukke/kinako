@@ -3,9 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Any, cast
 from enum import Enum
+from abc import ABC
 
-from src.core.identifier.identifier import Identifier
-
+from src.core.contract.policy import 
+from src.core.contract.right import 
+from src.core.contract.type import 
 
 @dataclass
 class Contract:
@@ -20,7 +22,7 @@ class Parameter:
     contract: Contract
         
 @dataclass
-class ASTNode():
+class ASTNode(ABC):
     """
     ASTノードの基底
     """

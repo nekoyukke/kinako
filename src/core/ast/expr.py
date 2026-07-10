@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
+from abc import ABC
 
-from src.frontend.parser.models.base import ASTNode
-from src.core.identifier.identifier import Variable as core_Variable
+from src.core.ast.base import ASTNode
 
 @dataclass(repr=False)
-class Expr(ASTNode):
+class Expr(ASTNode, ABC):
     pass
 
 class BinaryKind(Enum):
@@ -37,7 +37,7 @@ class UnaryExpr(Expr):
 
 @dataclass(repr=False)
 class Variable(Expr):
-    ident: core_Variable
+    ident: str
 
 @dataclass(repr=False)
 class CallExpr(Expr):
@@ -72,7 +72,7 @@ class AssignExpr(Expr):
     op: AssignKind
 
 @dataclass(repr=False)
-class AccessExpr(Expr):
+class AccessExpr(Expr, ABC):
     pass
 
 @dataclass(repr=False)
@@ -87,7 +87,7 @@ class MemberExpr(AccessExpr):
 
 
 @dataclass(repr=False)
-class Literal(Expr):
+class Literal(Expr, ABC):
     pass
 
 @dataclass(repr=False)

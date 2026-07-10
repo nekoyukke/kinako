@@ -1,5 +1,5 @@
 from src.core.context.context import *
-from src.core.right.right_def import *
+from src.core.core.right.right_def import *
 from src.core.source.source_span import *
 from src.core.identifier.identifier import *
 

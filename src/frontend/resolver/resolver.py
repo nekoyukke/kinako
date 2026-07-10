@@ -12,33 +12,7 @@ from src.utils.error.resolver import KinakoResolverError
 from src.utils.error.base import KinakoHelp, KinakoRelatedInfo, KinakoBaseError
 
 
-@dataclass
-class Scope:
-    parent: "Scope | None" = None
-    variables: dict[str, Symbol] = field(default_factory=dict[str, Symbol])
 
-    def check(self, name:str):
-        return name in self.variables
-
-    def define(self, var: Symbol):
-        self.variables[var.name] = var
-
-    def lookup(self, name: str) -> Symbol | None:
-        if self.check(name):
-            return self.variables[name]
-        if self.parent:
-            return self.parent.lookup(name)
-        return
-    
-    def get_variable(self) -> list[str]:
-        if self.parent:
-            return self.parent.get_variable() + list(self.variables)
-        return list(self.variables)
-    
-    def get_variable_db(self, sc:int=0) -> list[str]:
-        if self.parent:
-            return self.parent.get_variable_db(sc+1) + [f"{sc}:{i}" for _,i in self.variables.items()]
-        return [f"{sc}:{i}" for _,i in self.variables.items()]
 
 class Resolver:
     def __init__(self, program:_stmt.ProgramStmt, source: str, context:_ctx.Context) -> None:
