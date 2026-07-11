@@ -1,15 +1,16 @@
 import difflib
-from dataclasses import dataclass, field
 
 import src.core.context.context as _ctx
-from src.core.symbol.symbol_def import Symbol
+from src.core.symbol.symbol import Symbol
 from src.core.source.source_span import SourceSpan
 
-import src.frontend.parser.models.stmt as _stmt
-import src.frontend.parser.models.expr as _expr
-import src.frontend.parser.models.base as _base
+import src.core.ast.stmt as _stmt
+import src.core.ast.expr as _expr
+import src.core.ast.base as _base
 from src.utils.error.resolver import KinakoResolverError
 from src.utils.error.base import KinakoHelp, KinakoRelatedInfo, KinakoBaseError
+from src.core.scope.scope import Scope
+from src.core.context.id import *
 
 
 
@@ -20,7 +21,7 @@ class Resolver:
         self.context = context
         self.source = source
         self.error:list[KinakoBaseError] = []
-        self.scope = Scope()
+        self.scope = Scope(None, {})
     
     def resolve(self):
         # トップレベルに限らず、すべての定義を参照。
@@ -31,56 +32,30 @@ class Resolver:
         self.error.append(err)
     
     def push_scope(self):
-        self.scope = Scope(parent=self.scope)
+        self.scope = Scope(self.scope, {})
 
     def pop_scope(self, node:_base.ASTNode):
         if self.scope.parent is None:
-            self.call_error(f"kinakoコンパイラーエラー不明なスコープ取引、デバッグ情報:{self.scope.variables}", node)
+            self.call_error(f"kinakoコンパイラーエラー不明なスコープ取引、デバッグ情報:{self.scope.symbols}", node)
             raise
         self.scope = self.scope.parent
+
+    def resolve_contract(self):
+        
+    def resolve_type_identifier(self):
+        
+    def resolve_right_identifier(self):
+        
+    def resolve_policy_identifier(self):
+        
+
     
     def get_names(self, name:str, cc:int=1) -> list[str]:
         names:list[str] = []
-        names += list(self.context.functions.keys())
-        names += list(self.context.policies.keys())
-        names += list(self.context.policy_aliases.keys())
-        names += list(self.context.rights.keys())
-        names += list(self.context.right_aliases.keys())
-        names += list(self.context.types.keys())
-        names += list(self.context.type_aliases.keys())
+        names += list(self.context.policy)
+        names += list(self.context.right)
         names += self.scope.get_variable()
         return difflib.get_close_matches(name, names, cc)
-
-    def check_contract(self, contract:_base.Contract, node:_base.ASTNode):
-        _type = None if contract.type is None else contract.type
-        if _type:
-            if not _type.name in self.context.policies | self.context.policy_aliases:
-                name = self.get_names(_type.name.name)[0]
-                other = self.context.functions[name].span
-                if name:
-                    self.call_error(f"不明なポリシー名。{_type.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])
-                else:
-                    self.call_error(f"不明なポリシー名。{_type.name}", node,)
-        _policy = None if contract.policy is None else contract.policy
-        if _policy:
-            if not _policy.name in self.context.policies | self.context.policy_aliases:
-                name = self.get_names(_policy.name.name)[0]
-                other = self.context.functions[name].span
-                if name:
-                    self.call_error(f"不明なポリシー名。{_policy.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])
-                else:
-                    self.call_error(f"不明なポリシー名。{_policy.name}", node,)
-        _right = None if contract.right is None else contract.right
-        if _right:
-            if not _right.name in self.context.rights | self.context.right_aliases:
-                name = self.get_names(_right.name.name)[0]
-                other = self.context.functions[name].span
-                if name:
-                    self.call_error(f"不明な権利名。{_right.name}", node, related=[KinakoRelatedInfo(f"{name}ではありませんか？", other.line, other.col, other.len)])
-                else:
-                    self.call_error(f"不明な権利名。{_right.name}", node,)
-        
-        return (_type, _right, _policy)
 
     def _get_node_id(self, ast: _base.ASTNode):
         return id(ast)
@@ -98,21 +73,30 @@ class Resolver:
                 if node.left:
                     self._visit_expr(node.left)
 
-                name = node.name.ident.name
+                name = node.name.ident
                 if self.scope.check(name):
                     other = self.scope.lookup(name)
                     if other is not None:
-                        span = other.span
-                        self.call_error("宣言がかぶっています。", node, related=[KinakoRelatedInfo("被っている宣言元:", span.line, span.col, span.len)])
-                        return
-                    elif node.name.ident.name in self.context.functions:
-                        span = self.context.functions[node.name.ident.name].span
-                        self.call_error("宣言がかぶっています。", node, related=[KinakoRelatedInfo("被っている宣言元:", span.line, span.col, span.len)])
-                        return
+                        other_symbol = self.context.symbols[other.value]
+                        match(other_symbol.entity):
+                            case VariableId():
+                                other_value = self.context.variables[other_symbol.entity.value]
+                                span = other_value.span
+                                self.call_error("宣言がかぶっています。", node, related=[KinakoRelatedInfo("被っている宣言元:", span.line, span.col, span.len)])
+                                return
+                            case FunctionId():
+                                other_value = self.context.functions[other_symbol.entity.value]
+                                span = other_value.span
+                                self.call_error("宣言がかぶっています。", node, related=[KinakoRelatedInfo("被っている宣言元:", span.line, span.col, span.len)])
+                                return
+                            case _:
+                                self.call_error("宣言がかぶっています。", node)
+                                return
                     else:
                         self.call_error("宣言がかぶっています。", node)
                         return
-                _type, _right, _policy = self.check_contract(node.contract, node)
+                    raise
+                _type, _right, _policy = self.resolve_contract(node.contract, node)
                 var = Symbol(
                     name,
                     SourceSpan(node.line, node.col, node.len),

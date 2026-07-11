@@ -1,27 +1,22 @@
 from src.core.context.context import *
-from src.core.core.right.right_def import *
+from src.core.contract.right.right import *
+from src.core.contract.type.type import *
+from src.core.contract.policy.policy import *
 from src.core.source.source_span import *
-from src.core.identifier.identifier import *
 
 zero = SourceSpan(0,0,0)
 
 def inject_builtin_types(ctx:Context):
-    ctx.types["int"] = TypeDef("int", zero)
-    ctx.types["string"] = TypeDef("string", zero)
-    ctx.types["bool"] = TypeDef("bool", zero)
+    ctx.types.append(IntType(32))
+    ctx.types.append(BooleanType())
 
 def inject_builtin_rights(ctx:Context):
-    ctx.rights["Read"] = RightDef(Access.READ, Identity.NONE, zero)
-    ctx.rights["Write"] = RightDef(Access.WRITE, Identity.NONE, zero)
-    ctx.rights["Unique"] = RightDef(Access.NONE, Identity.UNIQUE, zero)
-    ctx.rights["Shared"] = RightDef(Access.NONE, Identity.SHARED, zero)
+    ctx.right["Unique"] = RealRight(AccessKind.NONE, IdentityKind.UNIQUE)
+    ctx.right["Shared"] = RealRight(AccessKind.NONE, IdentityKind.SHARED)
 
 def inject_builtin_policies(ctx:Context):
-    ctx.policies["Arc"] = PolicyDef("Arc", zero)
-    ctx.policies["Mutex"] = PolicyDef("Mutex", zero)
-
-def inject_builtin_alias(ctx:Context):
-    ctx.right_aliases["Onwer"] = RightAliasDef("Onwer", [Identifier(Variable("Read"), []), Identifier(Variable("Unique"), [])], zero)
+    ctx.policy["Arc"] = Arc()
+    ctx.policy["Mutex"] = Mutex()
 
 def inject_builtins(ctx: Context) -> Context:
     inject_builtin_types(ctx)

@@ -3,10 +3,12 @@ from enum import Enum
 from abc import ABC
 
 from src.core.ast.base import ASTNode
+from src.core.context.id import TypeId
+from src.core.context.id import SymbolId
 
 @dataclass(repr=False)
 class Expr(ASTNode, ABC):
-    pass
+    id: TypeId | None
 
 class BinaryKind(Enum):
     PLUS = "+"
@@ -38,6 +40,7 @@ class UnaryExpr(Expr):
 @dataclass(repr=False)
 class Variable(Expr):
     ident: str
+    symbolid: SymbolId | None = None
 
 @dataclass(repr=False)
 class CallExpr(Expr):

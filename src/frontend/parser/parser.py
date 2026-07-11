@@ -2,15 +2,11 @@ from typing import Callable
 
 from src.frontend.lexer.token import Token
 from src.frontend.lexer.tokentype import TokenType
-import src.frontend.parser.models.base as _base
-import src.frontend.parser.models.expr as _expr
-import src.frontend.parser.models.stmt as _stmt
+import src.core.ast.base as _base
+import src.core.ast.expr as _expr
+import src.core.ast.stmt as _stmt
 from src.utils.error.syntax import KinakoSyntaxError
 from src.utils.error.base import KinakoHelp, KinakoRelatedInfo, KinakoBaseError
-
-from src.core.identifier.identifier import Variable as core_Variable
-from src.core.identifier.identifier import Identifier
-
 
 class Parser():
     def __init__(self, tokens:list[Token], source:str) -> None:
@@ -155,29 +151,37 @@ class Parser():
                 expr = self._expr_entry()
                 self.consume(TokenType.SEMI, "セミコロンがありません！")
                 return _stmt.ExprStmt(expr.line, expr.col, expr.len, expr)
+    # A | B[C]なら
+    # Union(A, Generic(B, C))
+    def get_Union_identifier(self, message:str) -> _base.Identifier:
+        ident = self.get_generic_identifier(message)
+        if not self.check(TokenType.UNION):
+            return ident
+        result = _base.Union_Identifier([ident])
+        while self.match(TokenType.UNION):
+            result.identifiers.append(self.get_generic_identifier(message))
+        return result
     
-    def get_identifier(self, message:str) -> Identifier | None:
-        id = self.accept(TokenType.ID)
-        if id is None:return None
-        generic:list[Identifier] = []
-        if self.match(TokenType.LBRACKET):
-            # self.consume(TokenType.LBRACKET, f"[がありません！。{message}")
-            while (app:=self.get_identifier(message))!=None:
-                generic.append(app)
-                if self.peek().type == TokenType.RBRACKET:
-                    break
-                self.consume(TokenType.COMMA, f",がありません！。{message}")
-            self.consume(TokenType.RBRACKET, f"]がありません！。{message}")
-        return Identifier(core_Variable(id.value), generic)
+    def get_generic_identifier(self, message:str) -> _base.Identifier:
+        ident = self.get_real_identifier(message)
+        if not self.match(TokenType.LBRACKET):
+            return ident
+        ident_generic = self.get_Union_identifier(message)
+        self.consume(TokenType.RBRACKET, message)
+        return _base.Generic_Identifier(ident_generic, ident)
+    
+    def get_real_identifier(self, message:str) -> _base.Identifier:
+        tok = self.consume(TokenType.ID, message)
+        return _base.Real_Identifier(tok.value)
 
     def get_variable(self, message:str) -> _expr.Variable:
         result = self.consume(TokenType.ID, message)
-        return _expr.Variable(result.line, result.column, result.len, core_Variable(result.value))
+        return _expr.Variable(result.line, result.column, result.len, None, result.value)
 
     def get_contract(self, message:str) -> _base.Contract:
-        type = self.get_identifier(f"型パース失敗！{message}")
-        right = self.get_identifier(f"権利パース失敗！{message}")
-        policy = self.get_identifier(f"制約パース失敗！{message}")
+        type = self.get_Union_identifier(f"型パース失敗！{message}")
+        right = self.get_Union_identifier(f"権利パース失敗！{message}")
+        policy = self.get_Union_identifier(f"制約パース失敗！{message}")
         return _base.Contract(type, right, policy)
     
     def if_node(self) -> _stmt.Ifstmt:
@@ -270,14 +274,14 @@ class Parser():
         body = self._Stmt_entry()
         if body is None:
             self.CallError("不明な構文。正しくはfn <name>(args) -> contract {...}", _expr.Variable(
-                define_token.line, define_token.column, define_token.len,
-                core_Variable(define_token.value)))
+                define_token.line, define_token.column, define_token.len, None,
+                define_token.value))
             
         return _stmt.FunctionDeclStmt(
                 define_token.line,
                 define_token.column,
                 define_token.len,
-                _expr.Variable(id_token.line, id_token.column, id_token.len, core_Variable(id_token.value)),
+                _expr.Variable(id_token.line, id_token.column, id_token.len, None, id_token.value),
                 contract,
                 args,
                 body,
@@ -368,6 +372,7 @@ class Parser():
             op=kind,
             left=left,
             right=right,
+            id=None
         )
 
     def _make_logical(self, kind: _expr.kinds, left: _expr.Expr, right: _expr.Expr) -> _expr.Expr:
@@ -385,6 +390,7 @@ class Parser():
             op=kind,
             left=left,
             right=right,
+            id=None
         )
 
     def _make_assign(self, kind: _expr.kinds, left: _expr.Expr, right: _expr.Expr) -> _expr.Expr:
@@ -402,6 +408,7 @@ class Parser():
             op=kind,
             left=left,
             right=right,
+            id=None
         )
 
 
@@ -449,7 +456,7 @@ class Parser():
             operator_token = self.previous()
             right = self.prefix() # 自分自身を再帰的に呼ぶ
             return _expr.UnaryExpr(
-                operator_token.line, operator_token.column, operator_token.len,
+                operator_token.line, operator_token.column, operator_token.len, None,
                 right, _expr.UnaryKind.MINUS if operator_token.type==TokenType.MINUS else _expr.UnaryKind.PLUS
             )
         
@@ -465,10 +472,10 @@ class Parser():
             elif self.match(TokenType.LBRACKET): # インデックス a[0]
                 index = self._expr_entry()
                 self.consume(TokenType.RBRACKET, "']'がありません。トークン不足！")
-                node = _expr.IndexExpr(node.line, node.col, node.len, node, index)
+                node = _expr.IndexExpr(node.line, node.col, node.len, None, node, index)
             elif self.match(TokenType.DOT): # プロパティアクセス a.b
                 name = self.get_variable("プロパティ名が必要です。")
-                node = _expr.MemberExpr(node.line, node.col, node.len, node, name)
+                node = _expr.MemberExpr(node.line, node.col, node.len, None, node, name)
             else:
                 break
         
@@ -480,10 +487,10 @@ class Parser():
         match(current.type):
             case TokenType.NUMBER:
                 self.advance()
-                return _expr.IntLiteral(current.line, current.column, current.len, int(current.value))
+                return _expr.IntLiteral(current.line, current.column, current.len, None, int(current.value))
             case TokenType.DECIMAL:
                 self.advance()
-                return _expr.FloatLiteral(current.line, current.column, current.len, float(current.value))
+                return _expr.FloatLiteral(current.line, current.column, current.len, None, float(current.value))
             case TokenType.ID:
                 return self.get_variable("変数が必要です")
             case TokenType.LPAREN:
@@ -493,7 +500,7 @@ class Parser():
                 return expr
             case TokenType.STRING:
                 self.advance()
-                return _expr.StringLiteral(current.line, current.column, current.len, current.value)
+                return _expr.StringLiteral(current.line, current.column, current.len, None, current.value)
             # ミスケース
             case TokenType.LET:
                 note.append(
@@ -532,4 +539,4 @@ class Parser():
                 break
         self.consume(TokenType.RPAREN,"')'がありません！")
         end = self.peek()
-        return _expr.CallExpr(func.line, func.column, end.column - func.column, expr, args)
+        return _expr.CallExpr(func.line, func.column, end.column - func.column, None, expr, args)

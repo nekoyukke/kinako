@@ -29,7 +29,7 @@ class TokenType(Enum):
     NULL = r'null\b'
     
     # バン
-    ANCHOR_BANG = r'@'
+    UNION = r'\|'
 
     # 構文
     IF = r'if\b'

@@ -1,16 +1,9 @@
 from dataclasses import dataclass
-from enum import Enum, auto
 
-
-class SymbolKind(Enum):
-    VARIABLE = auto()
-    FUNCTION = auto()
-    TYPE = auto()
-
+from src.core.context.id import ContextId, SymbolId
 
 @dataclass(slots=True)
 class Symbol:
-    id: int
+    id: SymbolId
     name: str
-    kind: SymbolKind
-    entity: int
+    entity: ContextId

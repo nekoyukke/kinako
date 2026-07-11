@@ -5,9 +5,26 @@ from typing import Any, cast
 from enum import Enum
 from abc import ABC
 
-from src.core.contract.policy import 
-from src.core.contract.right import 
-from src.core.contract.type import 
+from src.core.contract.policy.policy import Policy
+from src.core.contract.right.right import Right
+from src.core.context.id import TypeId
+
+@dataclass
+class Identifier(ABC):
+    pass
+
+@dataclass
+class Generic_Identifier(Identifier):
+    generic: Identifier
+    expr: Identifier
+
+@dataclass
+class Union_Identifier(Identifier):
+    identifiers: list[Identifier]
+
+@dataclass
+class Real_Identifier(Identifier):
+    name:str
 
 @dataclass
 class Contract:
@@ -15,11 +32,18 @@ class Contract:
     right: Identifier | None
     policy: Identifier | None
 
+    type_id: TypeId | None = None
+    right_id: Right | None = None
+    policy_id: Policy | None = None
 
+
+from src.core.context.id import SymbolId
 @dataclass
 class Parameter:
     name: str
     contract: Contract
+    symbol: SymbolId | None = None
+    
         
 @dataclass
 class ASTNode(ABC):
