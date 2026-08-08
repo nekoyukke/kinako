@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 
-from src.core.contract.type.type import TypeDef, UserDefType
+from src.core.contract.type.type import TypeDef, UserDefType, BuildinType
 from src.core.contract.right.right import Right
 from src.core.contract.policy.policy import Policy
 from src.core.function.function import FunctionDef
 from src.core.symbol.symbol import Symbol
 from src.core.variable.variable import VariableDef
+from src.core.context.id import TypeId
 
 @dataclass(slots=True)
 class Context:
@@ -18,3 +19,4 @@ class Context:
     types: list[TypeDef]
     right: dict[str, Right]
     policy: dict[str, Policy]
+    buildin_type: dict[str, TypeId]

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from abc import ABC
 
 from src.core.source.source_span import SourceSpan
+from src.core.context.id import TypeId
 
 @dataclass
 class TypeDef(ABC):
@@ -26,15 +27,20 @@ class NoneType(BuildinType):
 
 @dataclass
 class PtrType(BuildinType):
-    element: TypeDef
+    element: TypeId
 
 @dataclass
 class ArrayType(BuildinType):
-    element: TypeDef
+    element: TypeId
     size: int
+
+@dataclass
+class UnionType(BuildinType):
+    right: TypeId
+    left: TypeId
 
 # 定義クラス
 @dataclass
 class UserDefType(TypeDef):
-    member: list[TypeDef]
+    member: list[TypeId]
     span: SourceSpan

@@ -24,3 +24,8 @@ class Scope:
         if self.parent:
             return self.lookup(name)
         return None
+
+    def get_variable_db(self) -> list[SymbolId]:...
+
+    def define(self, name:str, symbolid: SymbolId):
+        self.symbols[name] = symbolid

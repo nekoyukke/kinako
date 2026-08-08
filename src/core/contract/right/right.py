@@ -16,6 +16,11 @@ class Right(ABC):
     pass
 
 @dataclass
+class Right_Generic(Right):
+    element: Right
+    out: Right
+
+@dataclass
 class RealRight(Right):
     access: AccessKind
     identity: IdentityKind

@@ -11,6 +11,11 @@ class Policy_Union(Policy):
     left: Policy
 
 @dataclass
+class Policy_Generic(Policy):
+    element: Policy
+    out: Policy
+
+@dataclass
 class Mutex(Policy):
     pass
 
