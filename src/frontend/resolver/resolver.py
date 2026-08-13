@@ -33,26 +33,36 @@ class Resolver:
         return self._visit_program()
 
     def call_error(self, message:str, node:_base.ASTNode, related:list[KinakoRelatedInfo]=[], help:list[KinakoHelp]=[]):
+        """エラーよびふぁし"""
         err = KinakoResolverError(message, node.line, node.col, self.source, node.len, related, help)
         self.error.append(err)
     
     def push_scope(self):
+        """スコープをプッシュ"""
         self.scope = Scope(self.scope, {})
 
     def pop_scope(self, node:_base.ASTNode):
+        """スコープのポップ"""
         if self.scope.parent is None:
             self.call_error(f"kinakoコンパイラーエラー不明なスコープ取引、デバッグ情報:{self.scope.symbols}", node)
             raise
         self.scope = self.scope.parent
 
     def resolve_contract(self, contract:_base.Contract, err_node:_base.ASTNode):
-        if contract.type:contract.type_id = self.resolve_type_identifier(contract.type)
-        else:
-            if  in self.context.types
-        if contract.right:contract.right_id = self.resolve_right_identifier(contract.right)
-        if contract.policy:contract.policy_id = self.resolve_policy_identifier(contract.policy)
+        """contractを解決"""
+        if contract.type:
+            contract.type_id = self.resolve_type_identifier(contract.type)
+        # else:
+            # 個々の分岐何？　わかんないから思い出した時用にメモ
+            # if  in self.context.types
+        if contract.right:
+            contract.right_id = self.resolve_right_identifier(contract.right)
+        if contract.policy:
+            contract.policy_id = self.resolve_policy_identifier(contract.policy)
+        return
         
     def resolve_type_identifier(self, contract:_base.Identifier) -> TypeId:
+        """typeを解決"""
         if isinstance(contract, _base.Real_Identifier):
             # ビルドイン
             if contract.name in self.context.buildin_type:
@@ -86,7 +96,8 @@ class Resolver:
             # 外だけはんていちゅ
             generic_real = self.context.types[generic.value]
             if isinstance(generic_real, _t.ArrayType):
-                self.context.types.append(_t.ArrayType(expr, 0)) # メンバ追加するの忘れた。list[ide...]にするべき。あと、構文、"Number_Identifier"を追加
+                self.context.types.append(_t.ArrayType(expr, 0))
+                # メンバ追加するの忘れた。list[ide...]にするべき。あと、構文、"Number_Identifier"を追加
                 return TypeId(len(self.context.types)-1)
             elif isinstance(generic_real, _t.PtrType):
                 self.context.types.append(_t.PtrType(expr))
@@ -96,6 +107,7 @@ class Resolver:
         raise
         
     def resolve_right_identifier(self, contract:_base.Identifier) -> Right:
+        """権利の解決"""
         if isinstance(contract, _base.Real_Identifier):
             return self.context.right[contract.name]
         elif isinstance(contract, _base.Union_Identifier):
@@ -108,6 +120,7 @@ class Resolver:
         raise
         
     def resolve_policy_identifier(self, contract:_base.Identifier) -> Policy:
+        """規約の解決"""
         if isinstance(contract, _base.Real_Identifier):
             return self.context.policy[contract.name]
         elif isinstance(contract, _base.Union_Identifier):

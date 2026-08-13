@@ -12,11 +12,13 @@ from src.core.context.id import TypeId
 class Context:
     symbols: list[Symbol]
 
-    variables: list[VariableDef]
-    functions: list[FunctionDef]
-    typedefs: list[UserDefType]
+    variables: list[VariableDef] # valid: val
+    functions: list[FunctionDef] # funcid: func
 
-    types: list[TypeDef]
+    typedefs: list[UserDefType] # typeid: clstype
+    buildin: list[BuildinType] # typeid: Buildin
+    types: list[TypeDef] # typeid: type
+
     right: dict[str, Right]
     policy: dict[str, Policy]
     buildin_type: dict[str, TypeId]

@@ -46,36 +46,87 @@ Kinakoは、既存言語が抱える「安全性」「複雑性」「学習コ�
 
 `Value` とはスタック上、ヒープ上、またはその他のメモリ上に実際に存在するデータである。
 
-### 2.2 Type
+### 2.2 Contract
 
-`Type` とは `Value` のフォーマットであり、その値がどのようなデータ構造を持ち、どのような操作（演算）が可能かを定義するものです。
+`Contract`とは`Value`, `Right`, `Policy`の総称である。
 
-#### プリミティブ型 (Primitive Types)
+### 2.2.1 Type
+
+`Type` とは `Value` のフォーマットであり、その値がどのようなデータ構造を持ち、どのような操作（演算）が可能かを定義するもの。
+
+#### プリミティブ型
 
 整数型: `int`
 
+> Note: 常に`32bit`長。
+
 浮動小数点型: `float`
+
+> Note: 常に`32bit`長。\
+> Note: NanやInfinityでないことを保証しない。
 
 真偽型: `bool`
 
+> Note: `True`は`1`, `False`は`0`に対応する。
+
+### ジェネリック型
+
+変数有効アドレス値: `ptr`
+
+> Note: この型は内容自体が有効であることを保証する。
+
+固定長配列値: `array`
+
+### 2.2.2 Right
+
+`Variable`への`Binding`を制御するものである。
+
+### 2.2.3 Policy
+
+`Variable`
+
 ### 2.3 Variable
 
-`Variable` とは `Value`を
+`Variable` とは `Value`と`Contract`を通じてプログラム上に読みだすことである。
+
 
 ### 2.4 Binding
-### 2.5 Right
-### 2.6 Policy
+<!-- 束縛に関する内容を書く。 -->
+`Binding`とは`Value`と`Variable`とのつながりの呼称である。\
+`Binding`された`Value`は必ず1以上の`Binding`を持ち、`Binding`されていない`Value`は存在することが許されない。
 
-## 3. 宣言
+## 3. Interface
 
-## 4. 式
+`Interface`とは
 
-## 5. 制御構文
+## 4. Struct
 
-## 6. Interface
+## 5. Class
 
-## 7. Class
+## 6. Group
 
-## 8. Group
+## 7. Group属性群
+言い換え型:なんだっけアノテーションじゃなくて、あ、あ、アノマリー、じゃなくて、
+リネームみたいな、
 
-## 9. Checker Rules
+Groupから生成することのできる言い換え型である。
+
+### 7.1 Enum
+
+Groupから生成することのできる列挙である。
+
+### 7.2 Dynamic
+
+Groupから生成することのできるvtableを用いた動的ディスパッチを可能とする列挙型である。
+
+### 7.3 Match
+
+Groupから生成することのできるswitchを用いた動的ディスパッチを可能とする列挙型である。
+
+## 8. 宣言
+
+## 9. 式
+
+## 10. 制御構文
+
+## 11. Checker Rules
