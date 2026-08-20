@@ -1,12 +1,14 @@
 from dataclasses import dataclass
+from abc import ABC
 
-from src.core.context.id import ContextId, SymbolId
 from src.core.source.source_span import SourceSpan
-
+from src.core.contract.contract import Contract
+@dataclass(slots=True)
+class Symbol(ABC):
+    pass
 
 @dataclass(slots=True)
-class Symbol:
-    id: SymbolId
+class VariableSymbol(Symbol):
     name: str
-    entity: ContextId
+    entity: Contract
     span: SourceSpan

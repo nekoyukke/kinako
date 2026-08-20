@@ -13,7 +13,7 @@ from src.core.scope.scope import Scope
 from src.core.context.id import *
 
 from src.core.contract.policy.policy import Policy, Policy_Union, Policy_Generic
-from src.core.contract.right.right import Right, Right_Union, Right_Generic
+from src.core.contract.right.right import Right, Right_Union, Right_Generic, RealRight, AccessKind, IdentityKind
 import src.core.contract.type.type as _t
 from src.core.variable.variable import VariableDef
 from src.core.function.function import FunctionDef
@@ -134,6 +134,7 @@ class Resolver:
 
     
     def get_names(self, name:str, cc:int=1) -> list[str]:
+        """類似用の奴を引っ張り出してくるための奴"""
         names:list[str] = []
         names += list(self.context.policy)
         names += list(self.context.right)
@@ -141,16 +142,20 @@ class Resolver:
         return difflib.get_close_matches(name, names, cc)
 
     def _get_node_id(self, ast: _base.ASTNode):
+        """nodeのidをゲットするところ。まあ、差し替えて"""
         return id(ast)
 
     def _visit_program(self):
+        """main"""
         for s in self.program.instr:
             self._visit_try_stmt(s)
     
     def _visit_try_stmt(self, node:_stmt.Stmt):
+        """名ばかり"""
         self._visit_stmt(node)
     
     def _visit_stmt(self, node:_stmt.Stmt):
+        """stmt"""
         match (node):
             case _stmt.VariableDeclStmt():
                 if node.left:
@@ -186,7 +191,7 @@ class Resolver:
                     VariableDef(
                         symid,
                         node.contract.type_id,
-                        node.contract.right_id,
+                        node.contract.right_id if node.contract.right_id else RealRight(AccessKind.READ, IdentityKind.UNIQUE),
                         node.contract.policy_id,
                         SourceSpan(node.line, node.col, node.len)
                     )
@@ -214,7 +219,7 @@ class Resolver:
                     VariableDef(
                         symid,
                         node.result.type_id,
-                        node.result.right_id,
+                        node.result.right_id if node.result.right_id else RealRight(AccessKind.READ, IdentityKind.UNIQUE),
                         node.result.policy_id,
                         SourceSpan(node.line, node.col, node.len)
                     )
@@ -243,7 +248,7 @@ class Resolver:
                         VariableDef(
                             symid,
                             i.contract.type_id,
-                            i.contract.right_id,
+                            i.contract.right_id if i.contract.right_id else RealRight(AccessKind.READ, IdentityKind.UNIQUE),
                             i.contract.policy_id,
                             SourceSpan(node.line, node.col, node.len)
                         )
@@ -284,9 +289,9 @@ class Resolver:
         match (node):
             case _expr.Variable():
                 # セット
-                lookup = self.scope.lookup(node.ident.name)
+                lookup = self.scope.lookup(node.ident)
                 if lookup:
-                    lookup.name
+                    lookup
                     self.context.resolved[self._get_node_id(node)] = lookup
                     return
                 if node.ident.name in self.context.functions:

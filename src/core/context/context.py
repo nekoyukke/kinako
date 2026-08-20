@@ -4,21 +4,18 @@ from src.core.contract.type.type import TypeDef, UserDefType, BuildinType
 from src.core.contract.right.right import Right
 from src.core.contract.policy.policy import Policy
 from src.core.function.function import FunctionDef
-from src.core.symbol.symbol import Symbol
+from src.core.symbol.symbol import Var
 from src.core.variable.variable import VariableDef
-from src.core.context.id import TypeId
 
 @dataclass(slots=True)
 class Context:
-    symbols: list[Symbol]
 
-    variables: list[VariableDef] # valid: val
-    functions: list[FunctionDef] # funcid: func
-
-    typedefs: list[UserDefType] # typeid: clstype
-    buildin: list[BuildinType] # typeid: Buildin
-    types: list[TypeDef] # typeid: type
+    variables: dict[VariableDef]
+    functions: dict[FunctionDef]
+    typedefs: dict[UserDefType]
+    buildin: dict[BuildinType]
+    types: dict[TypeDef]
 
     right: dict[str, Right]
     policy: dict[str, Policy]
-    buildin_type: dict[str, TypeId]
+    buildin_type: dict[str, TypeDef]

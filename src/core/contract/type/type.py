@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from abc import ABC
 
 from src.core.source.source_span import SourceSpan
-from src.core.context.id import TypeId
 
 @dataclass
 class TypeDef(ABC):
@@ -27,20 +28,20 @@ class NoneType(BuildinType):
 
 @dataclass
 class PtrType(BuildinType):
-    element: TypeId
+    element: TypeDef
 
 @dataclass
 class ArrayType(BuildinType):
-    element: TypeId
+    element: TypeDef
     size: int
 
 @dataclass
 class UnionType(BuildinType):
-    right: TypeId
-    left: TypeId
+    right: TypeDef
+    left: TypeDef
 
 # 定義クラス
 @dataclass
 class UserDefType(TypeDef):
-    member: list[TypeId]
+    member: list[TypeDef]
     span: SourceSpan
